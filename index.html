@@ -1,0 +1,2261 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <!-- ========================================== -->
+    <!-- メタデータおよび外部リソースの読み込み領域 -->
+    <!-- ========================================== -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>献立コンシェルジュ</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome アイコンライブラリ -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts（M PLUS Rounded 1c） -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #fcfaf7;
+            color: #2d3748;
+        }
+        
+        .scrollbar-none::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-none {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col pb-24 sm:pb-12">
+    
+    <!-- ========================================== -->
+    <!-- ヘッダー（タイトル、同期ステータス、共有ボタン、タブ切り替え） -->
+    <!-- ========================================== -->
+    <header class="bg-white/85 backdrop-blur-md sticky top-0 z-30 border-b border-orange-100 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <!-- アプリロゴおよびタイトル部分 -->
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 bg-gradient-to-tr from-amber-500 to-orange-400 rounded-2xl flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+                    <i class="fa-solid fa-utensils text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-800 text-base sm:text-lg leading-tight">献立コンシェルジュ</h1>
+                    <div class="flex items-center space-x-2">
+                        <p class="text-[10px] text-slate-400">夫婦でリアルタイム共有</p>
+                        <span id="syncBadge" class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1 animate-pulse"></i>同期中...
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 操作ボタンおよびPC用ナビゲーション -->
+            <div class="flex items-center space-x-2">
+                <!-- パートナー共有モーダルを開くボタン -->
+                <button onclick="openShareModal()" class="bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center space-x-1.5 cursor-pointer border border-orange-200 shadow-sm">
+                    <i class="fa-solid fa-user-group text-orange-500"></i>
+                    <span class="hidden sm:inline">パートナーと共有</span>
+                </button>
+                
+                <!-- PC用タブナビゲーションメニュー -->
+                <nav class="hidden sm:flex space-x-1 bg-slate-100 p-1 rounded-2xl">
+                    <button onclick="switchTab('calendar')" id="nav-btn-calendar" class="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-white text-orange-600 shadow-sm cursor-pointer">ウィークリー献立</button>
+                    <button onclick="switchTab('recipes')" id="nav-btn-recipes" class="px-4 py-2 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-800 cursor-pointer">レシピ帳</button>
+                    <button onclick="switchTab('sets')" id="nav-btn-sets" class="px-4 py-2 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-800 cursor-pointer">献立セット</button>
+                    <button onclick="switchTab('shopping')" id="nav-btn-shopping" class="px-4 py-2 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-800 cursor-pointer">買い物リスト</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+    
+    <!-- ========================================== -->
+    <!-- メインコンテンツ領域（各タブの画面表示） -->
+    <!-- ========================================== -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6">
+        
+        <!-- Tab 1: ウィークリー献立（カレンダー） -->
+        <section id="tab-calendar" class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-800">今週の献立スケジュール</h2>
+                    <p class="text-xs text-slate-500">曜日をタップしてレシピの確認・分量変更や、買い物リストへの直接追加ができます</p>
+                </div>
+                
+            </div>
+            
+            
+            <!-- 献立クリアボタンの追加 -->
+            <div class="flex items-center gap-2">
+                <button id="clear-menu-btn" class="px-3.5 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-200 flex items-center gap-1.5 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    献立クリア
+                </button>
+            </div>
+            </div>
+            <!-- 各曜日の献立カードがJSで動的に挿入されるコンテナ -->
+            <div id="calendar-days-container" class="space-y-3"></div>
+        </section>
+        
+        <!-- Tab 2: レシピ帳 -->
+        <section id="tab-recipes" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-800">レシピブック</h2>
+                    <p class="text-xs text-slate-500">共有レシピの管理</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <!-- 新規レシピ追加モーダルを開くボタン -->
+                    <button onclick="openAddRecipeModal()" class="flex-1 sm:flex-none bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2.5 rounded-2xl shadow-md shadow-orange-500/20 transition-all flex items-center justify-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>レシピを追加</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- レシピのカテゴリ絞り込みフィルターボタン群 -->
+            <div class="flex space-x-2 overflow-x-auto pb-2 scrollbar-none">
+                <button onclick="filterRecipes('all')" id="filter-all" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-500 text-white transition-all whitespace-nowrap cursor-pointer">すべて</button>
+                <button onclick="filterRecipes('主菜')" id="filter-主菜" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all whitespace-nowrap cursor-pointer">主菜</button>
+                <button onclick="filterRecipes('副菜')" id="filter-副菜" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all whitespace-nowrap cursor-pointer">副菜</button>
+                <button onclick="filterRecipes('汁物')" id="filter-汁物" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all whitespace-nowrap cursor-pointer">汁物</button>
+            </div>
+            
+            <!-- レシピカードの一覧グリッドコンテナ -->
+            <div id="recipes-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        </section>
+        
+        <!-- Tab 3: 献立セット管理 -->
+        <section id="tab-sets" class="hidden space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-800">献立セット管理</h2>
+                    <p class="text-xs text-slate-500">「主菜・副菜・汁物」を組み合わせた定食セットを作れます</p>
+                </div>
+                <!-- セット作成モーダルを開くボタン -->
+                <button onclick="openAddSetModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2.5 rounded-2xl shadow-md shadow-amber-500/20 transition-all flex items-center space-x-1.5 cursor-pointer">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>セットを作成</span>
+                </button>
+            </div>
+            
+            <!-- 献立セットカードの一覧グリッドコンテナ -->
+            <div id="sets-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        </section>
+        
+        <!-- Tab 4: 買い物リスト -->
+        <section id="tab-shopping" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-800">買い物リスト</h2>
+                    <p class="text-xs text-slate-500">スーパーでどちらがチェックしても同期されます</p>
+                </div>
+                <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+                    <!-- 個別の食材を手動追加するボタン -->
+                    <button onclick="openAddShoppingModal()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3 py-2.5 rounded-2xl shadow-md shadow-orange-500/20 transition-all flex items-center space-x-1 cursor-pointer">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>食材を追加</span>
+                    </button>
+                    <!-- リストクリア用オプションモーダルを開くボタン -->
+                    <button onclick="openClearOptionsModal()" type="button" class="text-xs text-rose-600 hover:text-rose-700 font-bold px-3.5 py-2.5 rounded-2xl border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-all whitespace-nowrap flex items-center space-x-1.5 cursor-pointer shadow-sm">
+                        <i class="fa-solid fa-broom"></i>
+                        <span>クリア</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 今週のすべての献立から材料を一括自動計算して追加するバナーカード -->
+            <div class="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-3xl border border-orange-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-xs sm:text-sm flex items-center">
+                        <i class="fa-solid fa-calendar-days text-orange-500 mr-2"></i>今週の全献立からまとめて追加
+                    </h3>
+                    <p class="text-[11px] text-slate-500">人数を指定して今週すべての献立の材料を自動計算し、ジャンル別にリストに追加します</p>
+                </div>
+                <button onclick="openAddWeeklyShoppingModal()" type="button" class="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2.5 rounded-2xl shadow-sm transition-all whitespace-nowrap cursor-pointer">
+                    人数を選んで一括追加
+                </button>
+            </div>
+            
+            <!-- ジャンル別に整理された買い物リストが表示されるコンテナ -->
+            <div id="shopping-list-container" class="space-y-4"></div>
+        </section>
+        
+    </main>
+    
+    <!-- ========================================== -->
+    <!-- スマホ専用のボトムナビゲーションバー -->
+    <!-- ========================================== -->
+    <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 py-2.5 z-30 flex justify-around items-center">
+        <button onclick="switchTab('calendar')" id="m-nav-calendar" class="flex flex-col items-center space-y-1 text-orange-600 cursor-pointer">
+            <i class="fa-solid fa-calendar-days text-base"></i>
+            <span class="text-[10px] font-bold">週間献立</span>
+        </button>
+        <button onclick="switchTab('recipes')" id="m-nav-recipes" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-600 cursor-pointer">
+            <i class="fa-solid fa-book-open text-base"></i>
+            <span class="text-[10px] font-bold">レシピ帳</span>
+        </button>
+        <button onclick="switchTab('sets')" id="m-nav-sets" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-600 cursor-pointer">
+            <i class="fa-solid fa-layer-group text-base"></i>
+            <span class="text-[10px] font-bold">セット</span>
+        </button>
+        <button onclick="switchTab('shopping')" id="m-nav-shopping" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-600 cursor-pointer">
+            <i class="fa-solid fa-basket-shopping text-base"></i>
+            <span class="text-[10px] font-bold">買い物</span>
+        </button>
+    </nav>
+    
+    <!-- ========================================== -->
+    <!-- 各種ポップアップ・モーダルウィンドウ群 -->
+    <!-- ========================================== -->
+    
+    <!-- 1. 今週の献立一括追加（人数選択）モーダル -->
+    <div id="addWeeklyShoppingModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base flex items-center"><i class="fa-solid fa-basket-shopping text-orange-500 mr-2"></i>今週の献立から一括追加</h3>
+                <button onclick="closeAddWeeklyShoppingModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                今週の献立ボードに登録されている全てのメニューについて、何人前の材料として買い物リストにまとめるか選択してください。
+            </p>
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-slate-700">人数（分量）を選択</label>
+                <div class="grid grid-cols-3 gap-2" id="weeklyShoppingPortionButtons"></div>
+            </div>
+            <div class="pt-2 flex space-x-2">
+                <button onclick="closeAddWeeklyShoppingModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-3 rounded-2xl transition-all cursor-pointer">キャンセル</button>
+                <button onclick="confirmAddWeeklyScheduleToShopping()" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs py-3 rounded-2xl shadow-md transition-all cursor-pointer">リストに追加する</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 2. パートナー共有モーダル -->
+    <div id="shareModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base flex items-center"><i class="fa-solid fa-user-group text-orange-500 mr-2"></i>パートナーと共有する</h3>
+                <button onclick="closeShareModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                このアプリは同じ共有スペースを使用しているパートナーと、献立やレシピ、買い物リストをリアルタイムに同期できます。
+            </p>
+            <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100 space-y-2">
+                <label class="block text-xs font-bold text-orange-900">共有スペースのURL・ID</label>
+                <div class="flex gap-2">
+                    <input type="text" id="shareUrlInput" readonly class="w-full bg-white border border-orange-200 rounded-xl px-3 py-2 text-[11px] text-slate-700 select-all" value="">
+                    <button onclick="copyShareUrl()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap">コピー</button>
+                </div>
+                <p class="text-[10px] text-orange-700">このリンクをパートナーのスマホに送って開くだけで、同じデータを共有・同期できます。</p>
+            </div>
+            <div class="pt-2">
+                <button onclick="closeShareModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-3 rounded-2xl transition-all cursor-pointer">閉じる</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 3. 曜日ごとの献立割り当て・変更モーダル -->
+    <div id="assignModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-6 max-h-[85vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <h3 id="assignModalTitle" class="font-bold text-slate-800 text-base">献立を割り当て</h3>
+                <button onclick="closeAssignModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            ​<!-- 冷蔵庫の材料タグによる絞り込み検索エリア -->
+            <div class="bg-amber-50/60 p-3 rounded-2xl border border-amber-100 text-xs text-slate-600 mb-4 space-y-2">
+                <p class="font-bold text-amber-900 flex items-center justify-between">
+                    <span class="flex items-center"><i class="fa-solid fa-carrot mr-1.5 text-amber-600"></i>冷蔵庫の材料から検索・絞り込み</span>
+                    <button type="button" onclick="openAddChipModal()" class="text-[10px] bg-amber-200/70 hover:bg-amber-200 text-amber-900 px-2 py-0.5 rounded-lg transition-all cursor-pointer font-bold flex items-center">
+                        <i class="fa-solid fa-plus mr-1"></i>タグを追加
+                    </button>
+                </p>
+                <div class="flex gap-2">
+                    <div class="relative w-full">
+                        <input type="text" id="ingredientSearchInput" placeholder="例: 豚肉、キャベツ" class="w-full bg-white border border-amber-200 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <button type="button" onclick="const input = document.getElementById('ingredientSearchInput'); input.value = ''; document.getElementById('ingredientSearchResults').classList.add('hidden'); input.focus();" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors w-5 h-5 flex items-center justify-center rounded-full hover:bg-slate-100 cursor-pointer" title="検索をクリア">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+                    <button onclick="searchRecipesByIngredients()" type="button" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap shadow-sm">
+                        検索
+                    </button>
+                </div>
+                ​<!-- クイック食材チップ配置コンテナ -->
+                <div id="quickChipsContainer" class="flex flex-wrap gap-1.5 pt-1 items-center">
+                    <span class="text-[10px] text-amber-800/80 font-bold self-center mr-1">よくある食材:</span>
+                </div>
+                ​<div id="ingredientSearchResults" class="hidden space-y-1.5 pt-1 max-h-36 overflow-y-auto"></div>
+            </div>
+            ​<!-- 割当方式のタブ切り替え（セット選択 vs 単体レシピ組み合わせ） -->
+            <div class="flex bg-slate-100 p-1 rounded-2xl mb-4">
+                <button onclick="switchAssignTab('sets')" id="assign-tab-sets" class="flex-1 py-1.5 rounded-xl text-xs font-bold bg-white text-orange-600 shadow-sm transition-all cursor-pointer">献立セットから選ぶ</button>
+                <button onclick="switchAssignTab('recipes')" id="assign-tab-recipes" class="flex-1 py-1.5 rounded-xl text-xs font-bold text-slate-500 transition-all cursor-pointer">単体レシピから自由に選ぶ</button>
+            </div>
+            ​<!-- 献立セット選択リスト -->
+            <div id="assignSetsContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 mb-4">
+                <div id="assignSetList" class="space-y-2"></div>
+            </div>
+            ​<!-- 単体レシピ組み合わせ選択エリア -->
+            <div id="assignRecipesContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 mb-4 hidden">
+                <div class="bg-orange-50/50 p-3 rounded-2xl border border-orange-100 text-xs text-slate-600">
+                    <p class="font-bold text-orange-800 mb-0.5"><i class="fa-solid fa-circle-info mr-1"></i>自由に組み合わせて追加できます</p>
+                    主菜・副菜・汁物をそれぞれ選んでこの日の献立にセットできます。
+                </div>
+                ​<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">主菜を選ぶ</label>
+                        <select id="modalMainSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            <option value="">-- なし --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">副菜を選ぶ</label>
+                        <select id="modalSubSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            <option value="">-- なし --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">汁物を選ぶ</label>
+                        <select id="modalSoupSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            <option value="">-- なし --</option>
+                        </select>
+                    </div>
+                </div>
+                ​<button onclick="saveCustomCombinationForDay()" type="button" class="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs py-3 rounded-2xl shadow-md transition-all cursor-pointer">
+                    この組み合わせで決定する
+                </button>
+            </div>
+            ​<button onclick="selectNoneForDay()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-3 rounded-2xl transition-all cursor-pointer">
+                この日の献立をクリア
+            </button>
+        </div>
+    </div>
+    <!-- 4. レシピ追加・編集モーダル -->
+    <div id="addRecipeModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-lg rounded-3xl p-6 max-h-[90vh] flex flex-col shadow-2xl overflow-y-auto">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-utensils text-orange-500 mr-2"></i>レシピの追加</h3>
+                <button onclick="closeAddRecipeModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          
+            ​<!-- レシピ情報入力フォーム -->
+            <form id="recipeForm" onsubmit="saveRecipe(event)" class="space-y-4">
+                <input type="hidden" id="recipeEditId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">料理名 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="recipeTitle" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="例: 豚肉とキャベツの味噌炒め">
+                </div>
+                ​<div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">カテゴリ</label>
+                        <select id="recipeCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            <option value="主菜">主菜</option>
+                            <option value="副菜">副菜</option>
+                            <option value="汁物">汁物</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">調理時間</label>
+                        <input type="text" id="recipeTime" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="例: 15分">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">基準の人数</label>
+                        <select id="recipeServings" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            <option value="1">1人前</option>
+                            <option value="2" selected>2人前</option>
+                            <option value="3">3人前</option>
+                            <option value="4">4人前</option>
+                            <option value="5">5人前</option>
+                            <option value="6">6人前</option>
+                        </select>
+                    </div>
+                </div>
+                ​<div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">材料（1行に1つ。例: 醤油 大さじ1/2、塩 少々）</label>
+                    <textarea id="recipeIngredients" rows="3" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="豚肉 200g&#10;キャベツ 1/4玉&#10;醤油 大さじ1/2"></textarea>
+                </div>
+                ​<div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">作り方・手順</label>
+                    <textarea id="recipeInstructions" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="1. 豚肉を食べやすい大きさに切る。&#10;2. 野菜を炒める。"></textarea>
+                </div>
+                ​<div class="pt-2 flex space-x-2">
+                    <button type="button" onclick="closeAddRecipeModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs py-3 rounded-2xl transition-all cursor-pointer">キャンセル</button>
+                    <button type="submit" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs py-3 rounded-2xl shadow-md transition-all cursor-pointer">保存する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- 5. 献立セット作成モーダル -->
+    <div id="addSetModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-md rounded-3xl p-6 max-h-[90vh] flex flex-col shadow-2xl overflow-y-auto">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-layer-group text-amber-500 mr-2"></i>献立セットを作成</h3>
+                <button onclick="closeAddSetModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            ​<!-- セット作成時用の冷蔵庫食材検索エリア -->
+            <div class="bg-amber-50/60 p-3 sm:p-4 rounded-3xl border border-amber-100 text-xs text-slate-600 space-y-2.5 shadow-sm mb-4">
+                <p class="font-bold text-amber-900 flex items-center justify-between">
+                    <span class="flex items-center"><i class="fa-solid fa-carrot mr-1.5 text-amber-600"></i>冷蔵庫の材料からレシピを検索・絞り込み</span>
+                    <button type="button" onclick="openAddChipModal()" class="text-[10px] bg-amber-200/70 hover:bg-amber-200 text-amber-900 px-2 py-0.5 rounded-lg transition-all cursor-pointer font-bold flex items-center">
+                        <i class="fa-solid fa-plus mr-1"></i>タグを追加
+                    </button>
+                </p>
+                <div class="flex gap-2">
+                    <div class="relative w-full">
+                        <input type="text" id="setModalIngredientSearchInput" placeholder="例: 豚肉、キャベツ" class="w-full bg-white border border-amber-200 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <button type="button" onclick="const input = document.getElementById('setModalIngredientSearchInput'); input.value = ''; document.getElementById('setModalIngredientSearchResults').classList.add('hidden'); input.focus();" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors w-5 h-5 flex items-center justify-center rounded-full hover:bg-slate-100 cursor-pointer" title="検索をクリア">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+                    <button onclick="searchRecipesForSetModal()" type="button" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap shadow-sm">
+                        検索
+                    </button>
+                </div>
+                ​<!-- セット用クイックチップ配置コンテナ -->
+                <div id="setModalQuickChipsContainer" class="flex flex-wrap gap-1.5 pt-0.5 items-center">
+                    <span class="text-[10px] text-amber-800/80 font-bold self-center mr-1">よくある食材:</span>
+                </div>
+                ​<div id="setModalIngredientSearchResults" class="hidden space-y-1.5 pt-1 max-h-40 overflow-y-auto"></div>
+            </div>
+            ​<!-- 献立セット保存フォーム -->
+            <form onsubmit="saveMenuSet(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">セット名 <span class="text-rose-500"></span></label>
+                    <input type="text" id="setName" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="例: 生姜焼き定食">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">主菜を選ぶ <span class="text-rose-500"></span></label>
+                    <select id="setMainId" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <option value="">-- 主菜を選択 --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">副菜を選ぶ</label>
+                    <select id="setSubId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <option value="">-- なし --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">汁物を選ぶ</label>
+                    <select id="setSoupId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <option value="">-- なし --</option>
+                    </select>
+                </div>
+                ​<div class="pt-2 flex space-x-2">
+                    <button type="button" onclick="closeAddSetModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs py-3 rounded-2xl transition-all cursor-pointer">キャンセル</button>
+                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs py-3 rounded-2xl shadow-md transition-all cursor-pointer">セットを保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- 6. 新規食材タグ追加モーダル -->
+    <div id="addChipModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-xs rounded-3xl p-5 shadow-2xl space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h4 class="font-bold text-slate-800 text-xs flex items-center"><i class="fa-solid fa-tag text-amber-500 mr-1.5"></i>よく使う食材タグの追加</h4>
+                <button type="button" onclick="closeAddChipModal()" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark text-xs"></i></button>
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">食材名</label>
+                <input type="text" id="newChipInput" placeholder="例: トマト、チーズ" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
+            </div>
+            <div class="flex space-x-2 pt-1">
+                <button type="button" onclick="closeAddChipModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs py-2 rounded-xl transition-all cursor-pointer">キャンセル</button>
+                <button type="button" onclick="saveNewChip()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs py-2 rounded-xl shadow-sm transition-all cursor-pointer">追加する</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 7. 献立詳細・分量変更モーダル -->
+    <div id="setDetailModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-xl rounded-3xl p-6 max-h-[90vh] flex flex-col shadow-2xl overflow-y-auto">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                <h3 id="detailModalTitle" class="font-bold text-slate-800 text-base flex items-center"><i class="fa-solid fa-layer-group text-amber-500 mr-2"></i>献立詳細</h3>
+                <button onclick="closeSetDetail()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="bg-amber-50/70 p-3 rounded-2xl border border-amber-100 mb-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <span class="text-xs font-bold text-amber-800 flex items-center"><i class="fa-solid fa-users mr-1.5 text-amber-600"></i>分量（人数）を変更：</span>
+                <div id="portionButtonsContainer" class="flex bg-white p-1 rounded-xl shadow-sm border border-amber-200"></div>
+            </div>
+            
+            <div class="mb-4">
+                <button id="addThisMealToShoppingBtn" type="button" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs py-3 rounded-2xl shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer">
+                    <i class="fa-solid fa-basket-shopping text-sm"></i>
+                    <span id="addThisMealToShoppingText">この分量で買い物リストに追加する</span>
+                </button>
+            </div>
+            
+            <div id="setDetailBody"></div>
+        </div>
+    </div>
+    
+    <!-- 8. 買い物リスト個別食材追加モーダル -->
+    <div id="addShoppingModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-md rounded-3xl p-6 max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-basket-shopping text-orange-500 mr-2"></i>買い物リストに食材を追加</h3>
+                <button onclick="closeAddShoppingModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="saveCustomShoppingItem(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">食材名・メモ <span class="text-rose-500">*</span></label>
+                    <input type="text" id="customShoppingInput" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400" placeholder="例: 牛乳 1パック、卵 など">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">ジャンル（分類）を選択</label>
+                    <select id="customShoppingCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                        <option value="野菜・果物">野菜・果物</option>
+                        <option value="肉・魚介">肉・魚介</option>
+                        <option value="乳製品・卵">乳製品・卵</option>
+                        <option value="調味料・乾物">調味料・乾物</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                <div class="pt-2 flex space-x-2">
+                    <button type="button" onclick="closeAddShoppingModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs py-3 rounded-2xl transition-all cursor-pointer">キャンセル</button>
+                    <button type="submit" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs py-3 rounded-2xl shadow-md transition-all cursor-pointer">追加する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 9. 買い物リストクリアオプション選択モーダル -->
+    <div id="clearOptionsModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-sm rounded-3xl p-6 flex flex-col shadow-2xl">
+            <div class="flex items-center space-x-3 mb-3">
+                <div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-broom"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">買い物リストのクリア</h3>
+                    <p class="text-[11px] text-slate-400">クリア方法の選択</p>
+                </div>
+            </div>
+            <p class="text-xs text-slate-600 mb-5 leading-relaxed">どのようにクリアしますか？</p>
+            <div class="space-y-2">
+                <button type="button" onclick="clearCheckedShoppingItems()" class="w-full bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs py-3 rounded-2xl transition-all cursor-pointer flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-square-check"></i>
+                    <span>チェック済みのみ削除</span>
+                </button>
+                <button type="button" onclick="clearAllShoppingListDirect()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs py-3 rounded-2xl transition-all cursor-pointer flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>すべてクリア（全削除）</span>
+                </button>
+                <button type="button" onclick="closeClearOptionsModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs py-2.5 rounded-2xl transition-all cursor-pointer">キャンセル</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 10. カスタム確認ダイアログモーダル -->
+    <div id="customConfirmModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full sm:max-w-sm rounded-3xl p-6 flex flex-col shadow-2xl">
+            <div class="flex items-center space-x-3 mb-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-sm">確認</h3>
+                    <p class="text-[11px] text-slate-400">操作の確認</p>
+                </div>
+            </div>
+            <p id="confirmModalMessage" class="text-xs text-slate-600 mb-6 leading-relaxed">本当によろしいですか？</p>
+            <div class="flex space-x-2">
+                <button type="button" onclick="closeConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs py-2.5 rounded-2xl transition-all cursor-pointer">キャンセル</button>
+                <button type="button" id="confirmModalOkBtn" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs py-2.5 rounded-2xl shadow-sm transition-all cursor-pointer">実行する</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- トースト通知用コンテナ -->
+    <div id="toastContainer" class="fixed top-20 right-4 z-[70] flex flex-col space-y-2 pointer-events-none"></div>
+    
+    <!-- ========================================== -->
+    <!-- JavaScript ロジック・Firebase連携領域 -->
+    <!-- ========================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'kondate-ai-concierge-shared';
+        const firebaseConfig = {
+            apiKey: "AIzaSyB26b7xHNj49xvqwfqbCwnG6BqSlCl7wWs",
+            authDomain: "kondate-e4e45.firebaseapp.com",
+            projectId: "kondate-e4e45",
+            storageBucket: "kondate-e4e45.firebasestorage.app",
+            messagingSenderId: "376748899241",
+            appId: "1:376748899241:web:a333b8a1487926329e22b8"
+        };
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
+        
+        let app, db, auth;
+        let isCloudReady = false;
+        
+        
+        
+        const DAYS = [
+            { key: 'mon', label: '月曜日' },
+            { key: 'tue', label: '火曜日' },
+            { key: 'wed', label: '水曜日' },
+            { key: 'thu', label: '木曜日' },
+            { key: 'fri', label: '金曜日' },
+            { key: 'sat', label: '土曜日' },
+            { key: 'sun', label: '日曜日' },
+        ];
+        
+        const DEFAULT_RECIPES = [
+        {
+            id: 'r1',
+            title: '豚肉とキャベツの味噌炒め',
+            category: '主菜',
+            time: '15分',
+            baseServings: 2,
+            ingredients: ['豚薄切り肉 200g', 'キャベツ 1/4玉', 'ピーマン 2個', '味噌 大さじ1.5', '醤油 大さじ1', 'みりん 大さじ1', 'ごま油 適量'],
+            instructions: '1. 豚肉と野菜を食べやすい大きさに切る。\n2. フライパンにごま油を熱し、豚肉を炒める。\n3. 野菜を加えてしんなりするまで炒め、調味料を合わせて回しかける。'
+        },
+        {
+            id: 'r2',
+            title: 'きゅうりとワカメの酢の物',
+            category: '副菜',
+            time: '5分',
+            baseServings: 2,
+            ingredients: ['きゅうり 1本', '乾燥ワカメ 5g', '酢 大さじ2', '砂糖 大さじ1', '醤油 小さじ1'],
+            instructions: '1. きゅうりは薄切りにして塩もみする。\n2. ワカメは水で戻す。\n3. 調味料を合わせ、水気を絞った具材と和える。'
+        },
+        {
+            id: 'r3',
+            title: '豆腐とわかめの味噌汁',
+            category: '汁物',
+            time: '7分',
+            baseServings: 2,
+            ingredients: ['豆腐 1/2丁', 'ワカメ 少々', 'だし汁 400ml', '味噌 大さじ1.5'],
+            instructions: '1. 鍋にだし汁を温め、サイコロ状に切った豆腐とワカメを入れる。\n2. 沸騰直前で火を弱め、味噌を溶き入れる。'
+        },
+        {
+            id: 'r4',
+            title: '鶏のから揚げ おろしポン酢',
+            category: '主菜',
+            time: '20分',
+            baseServings: 2,
+            ingredients: ['鶏もも肉 1枚', '片栗粉 適量', '大根おろし 適量', 'ポン酢 適量', '醤油 大さじ1', '生姜チューブ 少々'],
+            instructions: '1. 鶏肉を一口大に切り、調味料に漬け込む。\n2. 片栗粉をまぶし、170度の油でカラッと揚げる。\n3. 器に盛り付け、大根おろしとポン酢をかける。'
+        }];
+        
+        const DEFAULT_SETS = [
+        {
+            id: 's1',
+            name: '定番！スタミナ味噌炒め定食',
+            mainId: 'r1',
+            subId: 'r2',
+            soupId: 'r3'
+        }];
+        
+        const DEFAULT_SCHEDULE = {
+            mon: { type: 'set', id: 's1' },
+            tue: { type: 'combination', mainId: 'r4', subId: '', soupId: '' },
+            wed: null,
+            thu: null,
+            fri: null,
+            sat: null,
+            sun: null
+        };
+        
+        const DEFAULT_SHOPPING = [
+            { id: 'sh1', text: '豚薄切り肉 200g', category: '肉・魚介', checked: false },
+            { id: 'sh2', text: 'キャベツ 1/4玉', category: '野菜・果物', checked: false },
+            { id: 'sh3', text: 'きゅうり 1本', category: '野菜・果物', checked: false },
+            { id: 'sh4', text: '味噌 大さじ1.5', category: '調味料・乾物', checked: false }
+        ];
+        
+        const LOCAL_STORAGE_KEY = 'kondate_ai_concierge_data_v1';
+        
+        function loadLocalData() {
+            try {
+                const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    return {
+                        recipes: parsed.recipes || DEFAULT_RECIPES,
+                        menuSets: parsed.menuSets || DEFAULT_SETS,
+                        weeklySchedule: parsed.weeklySchedule || DEFAULT_SCHEDULE,
+                        shoppingListItems: parsed.shoppingListItems || DEFAULT_SHOPPING
+                    };
+                }
+            } catch (e) {
+                console.error("Local storage load error:", e);
+            }
+            return {
+                recipes: [...DEFAULT_RECIPES],
+                menuSets: [...DEFAULT_SETS],
+                weeklySchedule: JSON.parse(JSON.stringify(DEFAULT_SCHEDULE)),
+                shoppingListItems: [...DEFAULT_SHOPPING]
+            };
+        }
+        
+        const localData = loadLocalData();
+        window.recipes = localData.recipes;
+        let menuSets = localData.menuSets;
+        let weeklySchedule = localData.weeklySchedule;
+        let shoppingListItems = localData.shoppingListItems;
+        
+        const SHOPPING_CATEGORIES = ['野菜・果物', '肉・魚介', '乳製品・卵', '調味料・乾物', 'その他'];
+        
+        // ==========================================
+        // 通知トーストおよび確認ダイアログの定義
+        // ==========================================
+        window.showToast = function(message) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = "bg-slate-900/90 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-lg backdrop-blur-md transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto flex items-center space-x-2";
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-amber-400"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+        
+        let confirmCallback = null;
+        window.showConfirmModal = function(message, onOk) {
+            const modal = document.getElementById('customConfirmModal');
+            const msgEl = document.getElementById('confirmModalMessage');
+            const okBtn = document.getElementById('confirmModalOkBtn');
+            if (!modal || !msgEl || !okBtn) return;
+            
+            msgEl.innerText = message;
+            confirmCallback = onOk;
+            modal.classList.remove('hidden');
+            
+            okBtn.onclick = () => {
+                closeConfirmModal();
+                if (typeof confirmCallback === 'function') confirmCallback();
+            };
+        };
+        
+        window.closeConfirmModal = function() {
+            const modal = document.getElementById('customConfirmModal');
+            if (modal) modal.classList.add('hidden');
+            confirmCallback = null;
+        };
+        
+        // ==========================================
+        // クイック食材タグ（チップ）管理機能
+        // ==========================================
+        function getStoredChips() {
+            const saved = localStorage.getItem('custom_quick_ingredients');
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) {}
+            }
+            return ['豚肉', '鶏肉', '牛肉', 'キャベツ', '玉ねぎ', '卵', '豆腐', 'きゅうり'];
+        }
+        
+        function saveStoredChips(chips) {
+            localStorage.setItem('custom_quick_ingredients', JSON.stringify(chips));
+        }
+        
+        window.renderQuickChips = function() {
+            const chips = getStoredChips();
+            ['quickChipsContainer', 'setModalQuickChipsContainer'].forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                
+                let html = `<span class="text-[10px] text-amber-800/80 font-bold self-center mr-1">よくある食材:</span>`;
+                chips.forEach((chip, index) => {
+                    const safeChip = String(chip).replace(/'/g, "\\'");
+                    html += `
+                        <span class="inline-flex items-center bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-lg text-[10px] transition-all shadow-2xs">
+                            <button type="button" onclick="selectQuickIngredient('${safeChip}', '${containerId}')" class="cursor-pointer mr-1">${chip}</button>
+                            <button type="button" onclick="deleteQuickChip(${index})" class="text-amber-400 hover:text-rose-500 transition-colors cursor-pointer text-[9px]" title="削除"><i class="fa-solid fa-xmark"></i></button>
+                        </span>
+                    `;
+                });
+                container.innerHTML = html;
+            });
+        };
+        
+        window.selectQuickIngredient = function(ingredientName, containerId) {
+            const inputId = containerId === 'setModalQuickChipsContainer' ? 'setModalIngredientSearchInput' : 'ingredientSearchInput';
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            
+            const currentVal = input.value.trim();
+            if (currentVal) {
+                if (!currentVal.includes(ingredientName)) {
+                    input.value = currentVal + ' ' + ingredientName;
+                }
+            } else {
+                input.value = ingredientName;
+            }
+            
+            if (containerId === 'setModalQuickChipsContainer') {
+                searchRecipesForSetModal();
+            } else {
+                searchRecipesByIngredients();
+            }
+        };
+        
+        window.openAddChipModal = function() {
+            const modal = document.getElementById('addChipModal');
+            if (modal) modal.classList.remove('hidden');
+            const input = document.getElementById('newChipInput');
+            if (input) {
+                input.value = '';
+                setTimeout(() => input.focus(), 50);
+            }
+        };
+        
+        window.closeAddChipModal = function() {
+            const modal = document.getElementById('addChipModal');
+            if (modal) modal.classList.add('hidden');
+        };
+        
+        window.saveNewChip = function() {
+            const input = document.getElementById('newChipInput');
+            if (!input) return;
+            const val = input.value.trim();
+            if (!val) return;
+            
+            let chips = getStoredChips();
+            if (!chips.includes(val)) {
+                chips.push(val);
+                saveStoredChips(chips);
+                renderQuickChips();
+            }
+            closeAddChipModal();
+            showToast(`食材タグ「${val}」を追加しました！`);
+        };
+        
+        window.deleteQuickChip = function(index) {
+            let chips = getStoredChips();
+            chips.splice(index, 1);
+            saveStoredChips(chips);
+            renderQuickChips();
+        };
+        
+        // ==========================================
+        // 食材によるレシピ検索・絞り込み機能
+        // ==========================================
+        window.searchRecipesByIngredients = function() {
+            const input = document.getElementById('ingredientSearchInput');
+            const resultsContainer = document.getElementById('ingredientSearchResults');
+            if (!input || !resultsContainer) return;
+            
+            const query = input.value.trim();
+            if (!query) {
+                resultsContainer.classList.add('hidden');
+                resultsContainer.innerHTML = '';
+                return;
+            }
+            
+            const keywords = query.split(/[\s,、]+/).filter(k => k.length > 0);
+            const matchedRecipes = window.recipes.filter(recipe => {
+                const ingText = Array.isArray(recipe.ingredients) ? recipe.ingredients.join(' ') : (recipe.ingredients || '');
+                return keywords.every(kw => recipe.title.includes(kw) || ingText.includes(kw));
+            });
+            
+            resultsContainer.classList.remove('hidden');
+            if (matchedRecipes.length === 0) {
+                resultsContainer.innerHTML = `<div class="bg-white p-2.5 rounded-xl border border-amber-200 text-slate-500 text-[11px] text-center">一致するレシピが見つかりませんでした</div>`;
+                return;
+            }
+            
+            let html = `<div class="text-[10px] font-bold text-amber-800 mb-1">ヒットしたレシピ (${matchedRecipes.length}件):</div>`;
+            matchedRecipes.forEach(recipe => {
+                html += `
+                    <div class="bg-white p-2 rounded-xl border border-amber-200 flex items-center justify-between text-xs shadow-sm">
+                        <div>
+                            <span class="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-100 text-orange-700 mr-1.5">${recipe.category || '主菜'}</span>
+                            <span class="font-bold text-slate-700">${recipe.title}</span>
+                        </div>
+                        <button type="button" onclick="selectRecipeFromSearch('${recipe.id}', '${recipe.category || '主菜'}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-2.5 py-1 rounded-lg text-[10px] transition-all cursor-pointer">選択する</button>
+                    </div>
+                `;
+            });
+            resultsContainer.innerHTML = html;
+        };
+        
+        window.selectRecipeFromSearch = function(recipeId, category) {
+            let selectId = 'modalMainSelect';
+            if (category === '副菜') selectId = 'modalSubSelect';
+            if (category === '汁物') selectId = 'modalSoupSelect';
+            
+            const selectEl = document.getElementById(selectId);
+            if (selectEl) selectEl.value = recipeId;
+            showToast(`${category}にセットしました！`);
+        };
+        
+        window.searchRecipesForSetModal = function() {
+            const input = document.getElementById('setModalIngredientSearchInput');
+            const resultsContainer = document.getElementById('setModalIngredientSearchResults');
+            if (!input || !resultsContainer) return;
+            
+            const query = input.value.trim();
+            if (!query) {
+                resultsContainer.classList.add('hidden');
+                resultsContainer.innerHTML = '';
+                return;
+            }
+            
+            const keywords = query.split(/[\s,、]+/).filter(k => k.length > 0);
+            const matchedRecipes = window.recipes.filter(recipe => {
+                const ingText = Array.isArray(recipe.ingredients) ? recipe.ingredients.join(' ') : (recipe.ingredients || '');
+                return keywords.every(kw => recipe.title.includes(kw) || ingText.includes(kw));
+            });
+            
+            resultsContainer.classList.remove('hidden');
+            if (matchedRecipes.length === 0) {
+                resultsContainer.innerHTML = `<div class="bg-white p-2.5 rounded-xl border border-amber-200 text-slate-500 text-[11px] text-center">一致するレシピが見つかりませんでした</div>`;
+                return;
+            }
+            
+            let html = `<div class="text-[10px] font-bold text-amber-800 mb-1">ヒットしたレシピ (${matchedRecipes.length}件):</div>`;
+            matchedRecipes.forEach(recipe => {
+                html += `
+                    <div class="bg-white p-2 rounded-xl border border-amber-200 flex items-center justify-between text-xs shadow-sm">
+                        <div>
+                            <span class="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-100 text-orange-700 mr-1.5">${recipe.category || '主菜'}</span>
+                            <span class="font-bold text-slate-700">${recipe.title}</span>
+                        </div>
+                        <button type="button" onclick="selectRecipeForSetModal('${recipe.id}', '${recipe.category || '主菜'}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-2.5 py-1 rounded-lg text-[10px] transition-all cursor-pointer">セットに反映</button>
+                    </div>
+                `;
+            });
+            resultsContainer.innerHTML = html;
+        };
+        
+        window.selectRecipeForSetModal = function(recipeId, category) {
+            let selectId = 'setMainId';
+            if (category === '副菜') selectId = 'setSubId';
+            if (category === '汁物') selectId = 'setSoupId';
+            
+            const selectEl = document.getElementById(selectId);
+            if (selectEl) selectEl.value = recipeId;
+            showToast(`${category}の枠にセットしました！`);
+        };
+        
+        
+
+        //,  ==========================================
+        // Firebase初期化およびリアルタイム同期機能
+        // ==========================================
+        async function initFirebase() {
+            renderAll();
+            renderQuickChips();
+            
+            if (!firebaseConfig) {
+                updateSyncBadge(true, "ローカル保存中");
+                return;
+            }
+            
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                isCloudReady = true;
+                updateSyncBadge(true, "クラウド同期中");
+                setupRealtimeSync();
+            } catch (err) {
+                console.error("Firebase init error:", err);
+                updateSyncBadge(true, "ローカル保存中");
+            }
+        }
+        
+        function updateSyncBadge(success, text) {
+            const badge = document.getElementById('syncBadge');
+            if (!badge) return;
+            if (success) {
+                badge.className = "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800";
+                badge.innerHTML = `<i class="fa-solid fa-cloud-arrow-up mr-1 text-emerald-600"></i>${text}`;
+            } else {
+                badge.className = "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800";
+                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1 text-rose-600"></i>${text}`;
+            }
+        }
+        
+        async function setupRealtimeSync() {
+            if (!db) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_menu_store');
+            
+            try {
+                const snap = await getDoc(docRef);
+                if (!snap.exists()) {
+                    await setDoc(docRef, {
+                        recipes: window.recipes,
+                        menuSets,
+                        weeklySchedule,
+                        shoppingListItems,
+                        updatedAt: Date.now()
+                    });
+                }
+            } catch (e) {
+                console.error("Initial doc fetch error:", e);
+            }
+            
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.recipes) window.recipes = data.recipes;
+                    if (data.menuSets) menuSets = data.menuSets;
+                    if (data.weeklySchedule) weeklySchedule = data.weeklySchedule;
+                    if (data.shoppingListItems) shoppingListItems = data.shoppingListItems;
+                    persistAndRender();
+                }
+            }, (error) => {
+                console.error("Snapshot error:", error);
+                updateSyncBadge(true, "ローカル保存中");
+            });
+        }
+        
+        function persistAndRender() {
+            try {
+                const dataToSave = {
+                    recipes: window.recipes,
+                    menuSets,
+                    weeklySchedule,
+                    shoppingListItems,
+                    updatedAt: Date.now()
+                };
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+            } catch (e) {
+                console.error("LocalStorage save error:", e);
+            }
+            
+            if (isCloudReady && db) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_menu_store');
+                setDoc(docRef, {
+                    recipes: window.recipes,
+                    menuSets,
+                    weeklySchedule,
+                    shoppingListItems,
+                    updatedAt: Date.now()
+                }, { merge: true }).catch(e => {
+                    console.error("Save cloud error:", e);
+                });
+            }
+            
+            renderAll();
+        }
+        
+        function renderAll() {
+            renderCalendar();
+            renderRecipes();
+            renderSets();
+            renderShoppingList();
+            renderQuickChips();
+        }
+        
+        window.switchTab = function(tabId) {
+            ['calendar', 'recipes', 'sets', 'shopping'].forEach(t => {
+                const tabEl = document.getElementById(`tab-${t}`);
+                if (tabEl) tabEl.classList.add('hidden');
+                
+                const btn = document.getElementById(`nav-btn-${t}`);
+                if (btn) btn.className = "px-4 py-2 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-800 cursor-pointer";
+                const mBtn = document.getElementById(`m-nav-${t}`);
+                if (mBtn) mBtn.className = "flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-600 cursor-pointer";
+            });
+            
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            if (activeTab) activeTab.classList.remove('hidden');
+            
+            const activeBtn = document.getElementById(`nav-btn-${tabId}`);
+            if (activeBtn) activeBtn.className = "px-4 py-2 rounded-xl text-xs font-bold transition-all bg-white text-orange-600 shadow-sm cursor-pointer";
+            const activeMBtn = document.getElementById(`m-nav-${tabId}`);
+            if (activeMBtn) activeMBtn.className = "flex flex-col items-center space-y-1 text-orange-600 cursor-pointer";
+            
+            renderAll();
+        };
+        
+        window.openShareModal = function() {
+            document.getElementById('shareUrlInput').value = window.location.href;
+            document.getElementById('shareModal').classList.remove('hidden');
+        };
+        
+        window.closeShareModal = function() {
+            document.getElementById('shareModal').classList.add('hidden');
+        };
+        
+        window.copyShareUrl = function() {
+            const input = document.getElementById('shareUrlInput');
+            input.select();
+            document.execCommand('copy');
+            showToast("共有リンクをコピーしました！パートナーに送信してください。");
+        };
+        
+        function classifyIngredient(text) {
+            const t = text.toLowerCase();
+            if (t.includes('肉') || t.includes('豚') || t.includes('鶏') || t.includes('牛') || t.includes('魚') || t.includes('鮭') || t.includes('海鮮') || t.includes('エビ') || t.includes('ひき肉') || t.includes('ベーコン') || t.includes('ハム')) {
+                return '肉・魚介';
+            }
+            if (t.includes('キャベツ') || t.includes('きゅうり') || t.includes('トマト') || t.includes('人参') || t.includes('玉ねぎ') || t.includes('じゃがいも') || t.includes('大根') || t.includes('ネギ') || t.includes('レタス') || t.includes('ピーマン') || t.includes('なす') || t.includes('ほうれん草') || t.includes('もやし') || t.includes('生姜') || t.includes('ニンニク') || t.includes('果物') || t.includes('レモン') || t.includes('アボカド') || t.includes('ブロッコリー') || t.includes('大根おろし')) {
+                return '野菜・果物';
+            }
+            if (t.includes('牛乳') || t.includes('卵') || t.includes('チーズ') || t.includes('バター') || t.includes('ヨーグルト') || t.includes('生クリーム')) {
+                return '乳製品・卵';
+            }
+            if (t.includes('味噌') || t.includes('醤油') || t.includes('砂糖') || t.includes('塩') || t.includes('酢') || t.includes('みりん') || t.includes('酒') || t.includes('油') || t.includes('ごま油') || t.includes('マヨネーズ') || t.includes('ケチャップ') || t.includes('だし') || t.includes('コンソメ') || t.includes('ワカメ') || t.includes('片栗粉') || t.includes('小麦粉') || t.includes('パン粉') || t.includes('カレー') || t.includes('胡椒') || t.includes('ポン酢')) {
+                return '調味料・乾物';
+            }
+            return 'その他';
+        }
+        // ==========================================
+        // ウィークリーカレンダー描画機能
+        // ==========================================
+        function renderCalendar() {
+            const container = document.getElementById('calendar-days-container');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            DAYS.forEach(day => {
+                const assigned = weeklySchedule[day.key];
+                let contentHtml = '';
+                let clickAction = `openAssignModal('${day.key}')`;
+                
+                if (!assigned) {
+                    contentHtml = `<p class="text-xs text-slate-400 italic">まだ献立が登録されていません</p>`;
+                } else if (assigned.type === 'set') {
+                    const s = menuSets.find(item => item.id === assigned.id);
+                    if (s) {
+                        const mainRec = window.recipes.find(r => r.id === s.mainId);
+                        clickAction = `viewSetDetail('${s.id}')`;
+                        contentHtml = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="inline-block bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md mb-1"><i class="fa-solid fa-layer-group mr-1"></i>セット</span>
+                            <h4 class="font-bold text-slate-800 text-sm sm:text-base">${s.name}</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">主菜: ${mainRec ? mainRec.title : 'なし'}</p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </div>
+                    </div>
+                `;
+                    } else {
+                        contentHtml = `<p class="text-xs text-slate-400 italic">削除されたセット</p>`;
+                    }
+                } else if (assigned.type === 'combination' || assigned.type === 'recipe') {
+                    const mainId = assigned.mainId || (assigned.type === 'recipe' ? assigned.id : '');
+                    const subId = assigned.subId || '';
+                    const soupId = assigned.soupId || '';
+                    
+                    const mainRec = window.recipes.find(r => r.id === mainId);
+                    const subRec = window.recipes.find(r => r.id === subId);
+                    const soupRec = window.recipes.find(r => r.id === soupId);
+                    
+                    clickAction = `viewCombinationDetail('${day.key}')`;
+                    contentHtml = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="inline-block bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-0.5 rounded-md mb-1"><i class="fa-solid fa-utensils mr-1"></i>カスタム組み合わせ</span>
+                        <div class="space-y-0.5 mt-1">
+                            <p class="text-xs text-slate-800 font-bold"><span class="text-orange-600 font-semibold mr-1">主:</span> ${mainRec ? mainRec.title : 'なし'}</p>
+                            <p class="text-xs text-slate-700"><span class="text-orange-600 font-semibold mr-1">副:</span> ${subRec ? subRec.title : 'なし'}</p>
+                            <p class="text-xs text-slate-700"><span class="text-orange-600 font-semibold mr-1">汁:</span> ${soupRec ? soupRec.title : 'なし'}</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </div>
+                </div>
+            `;
+                }
+                
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-orange-200 transition-all flex items-center justify-between";
+                card.innerHTML = `
+            <div class="flex items-center space-x-4 flex-1">
+                <div class="w-14 sm:w-20 text-center py-2 bg-slate-50 rounded-xl border border-slate-100">
+                    <span class="block font-bold text-slate-700 text-xs sm:text-sm">${day.label}</span>
+                </div>
+                <div class="flex-1 cursor-pointer" onclick="${clickAction}">
+                    ${contentHtml}
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-1.5 ml-3">
+               <button onclick="openAssignModal('${day.key}')" class="bg-slate-100 hover:bg-orange-500 hover:text-white text-slate-600 w-9 h-9 rounded-xl flex items-center justify-center transition-all text-xs cursor-pointer" title="献立を変更">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button onclick="clearDay('${day.key}')" class="bg-slate-100 hover:bg-rose-500 hover:text-white text-slate-600 w-9 h-9 rounded-xl flex items-center justify-center transition-all text-xs cursor-pointer" title="この日の献立をリセット">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        `;
+                container.appendChild(card);
+            });
+        }
+        
+        let currentAssignDay = null;
+        
+        window.openAssignModal = function(dayKey) {
+            currentAssignDay = dayKey;
+            const dayObj = DAYS.find(d => d.key === dayKey);
+            document.getElementById('assignModalTitle').innerText = `${dayObj.label}の献立を選択`;
+            
+            const setListEl = document.getElementById('assignSetList');
+            setListEl.innerHTML = '';
+            if (menuSets.length === 0) {
+                setListEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録されたセットがありません。「献立セット」タブから作成してください。</p>';
+            } else {
+                menuSets.forEach(s => {
+                    const item = document.createElement('div');
+                    item.className = "flex items-center justify-between p-3 rounded-2xl border border-amber-100 bg-amber-50/30 hover:bg-amber-50 cursor-pointer transition-all";
+                    item.onclick = () => selectSetForDay(s.id);
+                    item.innerHTML = `
+                <div>
+                    <span class="inline-block bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md mb-0.5">セット</span>
+                    <div class="font-bold text-slate-800 text-sm">${s.name}</div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+            `;
+                    setListEl.appendChild(item);
+                });
+            }
+            
+            const mainSel = document.getElementById('modalMainSelect');
+            const subSel = document.getElementById('modalSubSelect');
+            const soupSel = document.getElementById('modalSoupSelect');
+            
+            mainSel.innerHTML = '<option value="">-- なし --</option>';
+            subSel.innerHTML = '<option value="">-- なし --</option>';
+            soupSel.innerHTML = '<option value="">-- なし --</option>';
+            
+            window.recipes.forEach(r => {
+                const opt = `<option value="${r.id}">${r.title}</option>`;
+                if (r.category === '主菜') mainSel.innerHTML += opt;
+                if (r.category === '副菜') subSel.innerHTML += opt;
+                if (r.category === '汁物') soupSel.innerHTML += opt;
+            });
+            
+            const current = weeklySchedule[dayKey];
+            if (current && (current.type === 'combination' || current.type === 'recipe')) {
+                mainSel.value = current.mainId || (current.type === 'recipe' ? current.id : '') || '';
+                subSel.value = current.subId || '';
+                soupSel.value = current.soupId || '';
+            } else {
+                mainSel.value = '';
+                subSel.value = '';
+                soupSel.value = '';
+            }
+            
+            switchAssignTab('sets');
+            document.getElementById('assignModal').classList.remove('hidden');
+            renderQuickChips();
+        };
+        
+        window.closeAssignModal = function() {
+            document.getElementById('assignModal').classList.add('hidden');
+        };
+        
+        window.switchAssignTab = function(type) {
+            if (type === 'sets') {
+                document.getElementById('assignSetsContainer').classList.remove('hidden');
+                document.getElementById('assignRecipesContainer').classList.add('hidden');
+                document.getElementById('assign-tab-sets').className = "flex-1 py-1.5 rounded-xl text-xs font-bold bg-white text-orange-600 shadow-sm transition-all cursor-pointer";
+                document.getElementById('assign-tab-recipes').className = "flex-1 py-1.5 rounded-xl text-xs font-bold text-slate-500 transition-all cursor-pointer";
+            } else {
+                document.getElementById('assignSetsContainer').classList.add('hidden');
+                document.getElementById('assignRecipesContainer').classList.remove('hidden');
+                document.getElementById('assign-tab-sets').className = "flex-1 py-1.5 rounded-xl text-xs font-bold text-slate-500 transition-all cursor-pointer";
+                document.getElementById('assign-tab-recipes').className = "flex-1 py-1.5 rounded-xl text-xs font-bold bg-white text-orange-600 shadow-sm transition-all cursor-pointer";
+            }
+        };
+        
+        window.selectSetForDay = function(setId) {
+            if (!currentAssignDay) return;
+            weeklySchedule[currentAssignDay] = { type: 'set', id: setId };
+            persistAndRender();
+            closeAssignModal();
+            showToast("献立セットを割り当てました！");
+        };
+        
+        window.saveCustomCombinationForDay = function() {
+            if (!currentAssignDay) return;
+            const mainId = document.getElementById('modalMainSelect').value;
+            const subId = document.getElementById('modalSubSelect').value;
+            const soupId = document.getElementById('modalSoupSelect').value;
+            
+            if (!mainId && !subId && !soupId) {
+                showToast("少なくとも1つの料理を選択してください");
+                return;
+            }
+            
+            weeklySchedule[currentAssignDay] = { type: 'combination', mainId, subId, soupId };
+            persistAndRender();
+            closeAssignModal();
+            showToast("カスタム献立を割り当てました！");
+        };
+        
+        window.selectNoneForDay = function() {
+            if (!currentAssignDay) return;
+            weeklySchedule[currentAssignDay] = null;
+            persistAndRender();
+            closeAssignModal();
+            showToast("この日の献立をクリアしました");
+        };
+        
+        window.clearDay = function(dayKey) {
+            weeklySchedule[dayKey] = null;
+            persistAndRender();
+            showToast("この日の献立をリセットしました");
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const clearMenuBtn = document.getElementById('clear-menu-btn');
+            if (clearMenuBtn) {
+                clearMenuBtn.addEventListener('click', () => {
+                    if (confirm('今週の献立をすべてクリアしますか？')) {
+                        DAYS.forEach(day => {
+                            weeklySchedule[day.key] = null;
+                        });
+                        persistAndRender();
+                        showToast("今週の献立をすべてクリアしました");
+                    }
+                });
+            }
+        });
+        
+        let currentRecipeFilter = 'all';
+        window.filterRecipes = function(category) {
+            currentRecipeFilter = category;
+            ['all', '主菜', '副菜', '汁物'].forEach(c => {
+                const btn = document.getElementById(`filter-${c}`);
+                if (btn) {
+                    if (c === category) {
+                        btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-500 text-white transition-all whitespace-nowrap cursor-pointer";
+                    } else {
+                        btn.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all whitespace-nowrap cursor-pointer";
+                    }
+                }
+            });
+            renderRecipes();
+        };
+        
+        function renderRecipes() {
+            const grid = document.getElementById('recipes-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            const filtered = window.recipes.filter(r => currentRecipeFilter === 'all' || r.category === currentRecipeFilter);
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-slate-400 col-span-2 text-center py-8">レシピがありません</p>';
+                return;
+            }
+            
+            filtered.forEach(r => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3 hover:border-orange-200 transition-all flex flex-col justify-between";
+                card.innerHTML = `
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-block px-2 py-0.5 rounded-lg text-[10px] font-bold ${r.category === '主菜' ? 'bg-orange-100 text-orange-800' : r.category === '副菜' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">${r.category}</span>
+                    <div class="flex items-center space-x-1 text-[11px] text-slate-400">
+                        <i class="fa-solid fa-clock mr-1"></i><span>${r.time || '15分'}</span>
+                        <span class="mx-1">•</span>
+                        <i class="fa-solid fa-user-group mr-1"><span>${r.baseServings || 2}人前</span></i>
+                    </div>
+                </div>
+                <h3 class="font-bold text-slate-800 text-base mb-1">${r.title}</h3>
+                <p class="text-xs text-slate-500 line-clamp-2">材料: ${(r.ingredients || []).join(', ')}</p>
+            </div>
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button onclick="editRecipe('${r.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[11px] px-3 py-1.5 rounded-xl transition-all cursor-pointer">編集</button>
+                <button onclick="deleteRecipe('${r.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-[11px] px-3 py-1.5 rounded-xl transition-all cursor-pointer">削除</button>
+            </div>
+        `;
+                grid.appendChild(card);
+            });
+        }
+        
+        window.openAddRecipeModal = function() {
+            document.getElementById('recipeEditId').value = '';
+            document.getElementById('recipeForm').reset();
+            document.getElementById('addRecipeModal').classList.remove('hidden');
+        };
+        
+        window.closeAddRecipeModal = function() {
+            document.getElementById('addRecipeModal').classList.add('hidden');
+        };
+        
+        window.saveRecipe = function(e) {
+            e.preventDefault();
+            const editId = document.getElementById('recipeEditId').value;
+            const title = document.getElementById('recipeTitle').value.trim();
+            const category = document.getElementById('recipeCategory').value;
+            const time = document.getElementById('recipeTime').value.trim();
+            const baseServings = parseInt(document.getElementById('recipeServings').value) || 2;
+            const ingredientsText = document.getElementById('recipeIngredients').value;
+            const ingredients = ingredientsText.split('\n').map(i => i.trim()).filter(i => i.length > 0);
+            const instructions = document.getElementById('recipeInstructions').value.trim();
+            
+            if (editId) {
+                const idx = window.recipes.findIndex(r => r.id === editId);
+                if (idx !== -1) {
+                    window.recipes[idx] = { id: editId, title, category, time, baseServings, ingredients, instructions };
+                }
+                showToast("レシピを更新しました！");
+            } else {
+                const newRecipe = {
+                    id: 'r_' + Date.now(),
+                    title,
+                    category,
+                    time,
+                    baseServings,
+                    ingredients,
+                    instructions
+                };
+                window.recipes.push(newRecipe);
+                showToast("新しいレシピを追加しました！");
+            }
+            
+            persistAndRender();
+            closeAddRecipeModal();
+        };
+        
+        window.editRecipe = function(id) {
+            const r = window.recipes.find(item => item.id === id);
+            if (!r) return;
+            document.getElementById('recipeEditId').value = r.id;
+            document.getElementById('recipeTitle').value = r.title;
+            document.getElementById('recipeCategory').value = r.category;
+            document.getElementById('recipeTime').value = r.time || '';
+            document.getElementById('recipeServings').value = r.baseServings || 2;
+            document.getElementById('recipeIngredients').value = (r.ingredients || []).join('\n');
+            document.getElementById('recipeInstructions').value = r.instructions || '';
+            document.getElementById('addRecipeModal').classList.remove('hidden');
+        };
+        
+        window.deleteRecipe = function(id) {
+            showConfirmModal("このレシピを削除してもよろしいですか？", () => {
+                window.recipes = window.recipes.filter(r => r.id !== id);
+                persistAndRender();
+                showToast("レシピを削除しました");
+            });
+        };
+        
+        function renderSets() {
+            const grid = document.getElementById('sets-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            const mainSel = document.getElementById('setMainId');
+            const subSel = document.getElementById('setSubId');
+            const soupSel = document.getElementById('setSoupId');
+            
+            if (mainSel && subSel && soupSel) {
+                mainSel.innerHTML = '<option value="">-- 主菜を選択 --</option>';
+                subSel.innerHTML = '<option value="">-- なし --</option>';
+                soupSel.innerHTML = '<option value="">-- なし --</option>';
+                
+                window.recipes.forEach(r => {
+                    const opt = `<option value="${r.id}">${r.title}</option>`;
+                    if (r.category === '主菜') mainSel.innerHTML += opt;
+                    if (r.category === '副菜') subSel.innerHTML += opt;
+                    if (r.category === '汁物') soupSel.innerHTML += opt;
+                });
+            }
+            
+            if (menuSets.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-slate-400 col-span-2 text-center py-8">献立セットがありません</p>';
+                return;
+            }
+            
+            menuSets.forEach(s => {
+                const mainRec = window.recipes.find(r => r.id === s.mainId);
+                const subRec = window.recipes.find(r => r.id === s.subId);
+                const soupRec = window.recipes.find(r => r.id === s.soupId);
+                
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3 hover:border-amber-200 transition-all flex flex-col justify-between";
+                card.innerHTML = `
+            <div>
+                <span class="inline-block bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg mb-1.5"><i class="fa-solid fa-layer-group mr-1"></i>定食セット</span>
+                <h3 class="font-bold text-slate-800 text-base mb-2">${s.name}</h3>
+                <div class="space-y-1 bg-amber-50/50 p-3 rounded-2xl border border-amber-100 text-xs text-slate-700">
+                    <p><span class="font-bold text-amber-800 mr-1.5">主菜:</span> ${mainRec ? mainRec.title : 'なし'}</p>
+                    <p><span class="font-bold text-amber-800 mr-1.5">副菜:</span> ${subRec ? subRec.title : 'なし'}</p>
+                    <p><span class="font-bold text-amber-800 mr-1.5">汁物:</span> ${soupRec ? soupRec.title : 'なし'}</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                <button onclick="viewSetDetail('${s.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer">詳細・材料を見る</button>
+                <button onclick="deleteMenuSet('${s.id}')" class="text-rose-500 hover:text-rose-600 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">削除</button>
+            </div>
+        `;
+                grid.appendChild(card);
+            });
+        }
+        
+        window.openAddSetModal = function() {
+            document.getElementById('addSetModal').classList.remove('hidden');
+            renderQuickChips();
+        };
+        
+        window.closeAddSetModal = function() {
+            document.getElementById('addSetModal').classList.add('hidden');
+        };
+        
+        window.saveMenuSet = function(e) {
+            e.preventDefault();
+            const name = document.getElementById('setName').value.trim();
+            const mainId = document.getElementById('setMainId').value;
+            const subId = document.getElementById('setSubId').value;
+            const soupId = document.getElementById('setSoupId').value;
+            
+            if (!name || !mainId) {
+                showToast("セット名と主菜は必須です");
+                return;
+            }
+            
+            const newSet = {
+                id: 's_' + Date.now(),
+                name,
+                mainId,
+                subId,
+                soupId
+            };
+            menuSets.push(newSet);
+            persistAndRender();
+            closeAddSetModal();
+            showToast("献立セットを保存しました！");
+        };
+        
+        window.deleteMenuSet = function(id) {
+            showConfirmModal("この献立セットを削除してもよろしいですか？", () => {
+                menuSets = menuSets.filter(s => s.id !== id);
+                persistAndRender();
+                showToast("セットを削除しました");
+            });
+        };
+        
+        let draggedShoppingItemId = null;
+        let longPressTimer = null;
+        let isLongPressActive = false;
+        let longPressSourceEl = null;
+        
+        if (typeof SHOPPING_CATEGORIES === 'undefined') {
+            window.SHOPPING_CATEGORIES = ['野菜・果物', '肉・魚介', '乳製品・卵', '調味料・その他'];
+        }
+        if (typeof shoppingListItems === 'undefined') {
+            window.shoppingListItems = [];
+        }
+        
+        window.renderShoppingList = function() {
+            const container = document.getElementById('shopping-list-container');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const groups = {};
+            SHOPPING_CATEGORIES.forEach(cat => groups[cat] = []);
+            
+            if (Array.isArray(shoppingListItems)) {
+                shoppingListItems.forEach(item => {
+                    const cat = item.category || 'その他';
+                    if (!groups[cat]) groups[cat] = [];
+                    groups[cat].push(item);
+                });
+            }
+            
+            let hasAny = false;
+            SHOPPING_CATEGORIES.forEach(cat => {
+                const items = groups[cat] || [];
+                hasAny = true; // 常に各ジャンルを表示し、ジャンルごとの＋ボタンから追加できるようにする
+                
+                const section = document.createElement('div');
+                section.className = "bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2";
+                
+                let itemsHtml = '';
+                if (items.length === 0) {
+                    itemsHtml = `<p class="text-xs text-slate-300 italic py-1 px-2">アイテムはありません</p>`;
+                } else {
+                    items.forEach(item => {
+                        itemsHtml += `
+        <div draggable="true" 
+             data-id="${item.id}"
+             ondragstart="window.handleShoppingDragStart(event, '${item.id}')" 
+             ondragover="window.handleShoppingDragOver(event)" 
+             ondrop="window.handleShoppingDrop(event, '${item.id}')"
+             ontouchstart="window.handleShoppingTouchStart(event, '${item.id}')"
+             ontouchmove="window.handleShoppingTouchMove(event)"
+             ontouchend="window.handleShoppingTouchEnd(event, '${item.id}')"
+             class="flex items-center justify-between py-2 px-2 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-200 select-none">
+            <label class="flex items-center space-x-3 cursor-pointer flex-1 select-none">
+                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleShoppingItem('${item.id}')" class="w-4 h-4 text-orange-500 rounded border-slate-300 focus:ring-orange-400">
+                <span class="text-xs ${item.checked ? 'line-through text-slate-400' : 'text-slate-700 font-bold'}">${escapeHtml(item.text)}</span>
+            </label>
+            <div class="flex items-center space-x-1">
+                <span class="text-[10px] text-slate-300 hidden sm:inline" title="ドラッグまたは長押しで並び替え"><i class="fa-solid fa-grip-vertical"></i></span>
+                <button onclick="deleteShoppingItem('${item.id}')" class="text-slate-300 hover:text-rose-500 transition-colors text-xs px-2 py-1 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+    `;
+                    });
+                }
+                
+                section.innerHTML = `
+    <div class="flex items-center justify-between border-b border-orange-100 pb-2 mb-2">
+        <h3 class="font-bold text-xs text-orange-800 flex items-center">
+            <i class="fa-solid fa-tag text-orange-500 mr-1.5"></i>${cat} (${items.length})
+        </h3>
+        <button onclick="openAddShoppingModalForCategory('${cat}')" class="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-500 hover:text-white text-orange-600 flex items-center justify-center transition-all text-xs cursor-pointer shadow-sm" title="${cat}に食材を追加">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+    </div>
+    <div class="space-y-1">${itemsHtml}</div>
+`;
+                container.appendChild(section);
+            });
+            
+            // 全グループが空かどうかチェックする場合は適宜判定
+        };
+        
+        window.handleShoppingDragStart = function(e, id) {
+            if (isLongPressActive) return;
+            draggedShoppingItemId = id;
+            e.dataTransfer.effectAllowed = 'move';
+        };
+        
+        window.handleShoppingDragOver = function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        };
+        
+        window.handleShoppingDrop = function(e, targetId) {
+            e.preventDefault();
+            if (!draggedShoppingItemId || draggedShoppingItemId === targetId) return;
+            
+            const fromIdx = shoppingListItems.findIndex(i => i.id === draggedShoppingItemId);
+            const toIdx = shoppingListItems.findIndex(i => i.id === targetId);
+            
+            if (fromIdx !== -1 && toIdx !== -1) {
+                const [movedItem] = shoppingListItems.splice(fromIdx, 1);
+                shoppingListItems.splice(toIdx, 0, movedItem);
+                persistAndRender();
+            }
+            draggedShoppingItemId = null;
+            isLongPressActive = false;
+        };
+        
+        window.handleShoppingTouchStart = function(e, id) {
+            draggedShoppingItemId = id;
+            longPressSourceEl = e.currentTarget;
+            isLongPressActive = false;
+            
+            if (longPressTimer) clearTimeout(longPressTimer);
+            
+            longPressTimer = setTimeout(() => {
+                isLongPressActive = true;
+                if (longPressSourceEl) {
+                    longPressSourceEl.classList.add('opacity-60', 'bg-orange-50', 'border-orange-300', 'shadow-sm');
+                    if (window.navigator && window.navigator.vibrate) {
+                        window.navigator.vibrate(50);
+                    }
+                }
+            }, 500);
+        };
+        
+        window.handleShoppingTouchMove = function(e) {
+            if (!draggedShoppingItemId) return;
+            if (!isLongPressActive) {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+                return;
+            }
+            e.preventDefault();
+        };
+        
+        window.handleShoppingTouchEnd = function(e, id) {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            
+            if (longPressSourceEl) {
+                longPressSourceEl.classList.remove('opacity-60', 'bg-orange-50', 'border-orange-300', 'shadow-sm');
+            }
+            
+            if (!isLongPressActive || !draggedShoppingItemId) {
+                draggedShoppingItemId = null;
+                isLongPressActive = false;
+                longPressSourceEl = null;
+                return;
+            }
+            
+            const touch = e.changedTouches[0];
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetItemEl = elementBelow ? elementBelow.closest('[data-id]') : null;
+            
+            if (targetItemEl) {
+                const targetId = targetItemEl.getAttribute('data-id');
+                if (draggedShoppingItemId && targetId && draggedShoppingItemId !== targetId) {
+                    const fromIdx = shoppingListItems.findIndex(i => i.id === draggedShoppingItemId);
+                    const toIdx = shoppingListItems.findIndex(i => i.id === targetId);
+                    
+                    if (fromIdx !== -1 && toIdx !== -1) {
+                        const [movedItem] = shoppingListItems.splice(fromIdx, 1);
+                        shoppingListItems.splice(toIdx, 0, movedItem);
+                        persistAndRender();
+                    }
+                }
+            }
+            
+            draggedShoppingItemId = null;
+            isLongPressActive = false;
+            longPressSourceEl = null;
+        };
+        
+        window.toggleShoppingItem = function(id) {
+            const item = shoppingListItems.find(i => i.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                persistAndRender();
+            }
+        };
+        
+        window.deleteShoppingItem = function(id) {
+            shoppingListItems = shoppingListItems.filter(i => i.id !== id);
+            persistAndRender();
+        };
+        
+        function getCleanSeasoningName(text) {
+            if (!text) return '';
+            let cleaned = text.trim();
+            cleaned = cleaned.replace(/\s*[\（\(]\d+[\）\)]$/, '').trim();
+            cleaned = cleaned.replace(/\s*([\d０-９\.\/\s]+)?\s*(g|kg|ml|cc|ℓ|L|大さじ|小さじ|カップ|個|本|枚|パック|株|片|束|切れ|つまみ|少々|適量).*$/u, '').trim();
+            cleaned = cleaned.replace(/[\（\(].*?[\）\)]/g, '').trim();
+            cleaned = cleaned.replace(/[\d０-９]+/g, '').trim();
+            return cleaned || text.trim();
+        }
+        
+        function parseNumericValue(str) {
+            if (!str) return 0;
+            const trimmed = str.trim();
+            if (trimmed.includes('/')) {
+                const parts = trimmed.split('/');
+                if (parts.length === 2 && parseFloat(parts[1]) !== 0) {
+                    return parseFloat(parts[0]) / parseFloat(parts[1]);
+                }
+            }
+            return parseFloat(trimmed) || 0;
+        }
+        
+        function parseRegularIngredient(text) {
+            if (!text) return { name: '', value: 0, unit: '' };
+            let cleaned = text.trim();
+            cleaned = cleaned.replace(/\s*[\（\(]\d+[\）\)]$/, '').trim();
+            
+            const match = cleaned.match(/^([\p{L}\p{N}\sー・]+?)\s*([\d０-９\.\/\s]+)?\s*(g|kg|ml|cc|ℓ|L|大さじ|小さじ|カップ|個|本|枚|パック|株|片|束|切れ|つまみ|少々|適量|玉|丁|袋|尾|房|切)?$/u);
+            if (match) {
+                const name = (match[1] || cleaned).trim();
+                const numStr = (match[2] || '').trim();
+                const unit = (match[3] || '').trim();
+                let value = parseNumericValue(numStr);
+                if (value === 0 && !unit && (cleaned.includes('少々') || cleaned.includes('適量'))) {
+                    value = 0;
+                } else if (value === 0 && !numStr && !unit) {
+                    value = 1;
+                }
+                return { name, value, unit };
+            }
+            
+            return { name: cleaned, value: 1, unit: '' };
+        }
+        
+        function addIngredientsWithAggregation(newItemsList) {
+            if (!Array.isArray(shoppingListItems)) {
+                shoppingListItems = [];
+            }
+            
+            const map = {};
+            const seasoningMap = {};
+            
+            shoppingListItems.forEach(item => {
+                const cat = item.category || 'その他';
+                const isSeasoning = (cat === '調味料・その他' || cat === '調味料・乾物' || item.text.includes('大さじ') || item.text.includes('小さじ') || item.text.includes('塩') || item.text.includes('醤油') || item.text.includes('砂糖') || item.text.includes('味噌') || item.text.includes('みりん') || item.text.includes('酒') || item.text.includes('チューブ') || item.text.includes('ごま油') || item.text.includes('サラダ油') || item.text.includes('油') || item.text.includes('こしょう') || item.text.includes('コンソメ') || item.text.includes('鶏がらスープ'));
+                
+                if (isSeasoning) {
+                    const cleanName = getCleanSeasoningName(item.text);
+                    const key = cleanName.toLowerCase();
+                    if (!seasoningMap[key]) {
+                        seasoningMap[key] = { name: cleanName, category: cat, checked: item.checked };
+                    }
+                } else {
+                    const parsed = parseRegularIngredient(item.text);
+                    const key = parsed.name.toLowerCase();
+                    if (!map[key]) {
+                        map[key] = {
+                            name: parsed.name,
+                            category: cat,
+                            units: {},
+                            checked: item.checked
+                        };
+                    }
+                    const u = parsed.unit || '';
+                    if (!map[key].units[u]) map[key].units[u] = 0;
+                    map[key].units[u] += parsed.value;
+                }
+            });
+            
+            newItemsList.forEach(newItem => {
+                const cat = newItem.category || 'その他';
+                const isSeasoning = (cat === '調味料・その他' || cat === '調味料・乾物' || newItem.text.includes('大さじ') || newItem.text.includes('小さじ') || newItem.text.includes('塩') || newItem.text.includes('醤油') || newItem.text.includes('砂糖') || newItem.text.includes('味噌') || newItem.text.includes('みりん') || newItem.text.includes('酒') || newItem.text.includes('チューブ') || newItem.text.includes('ごま油') || newItem.text.includes('サラダ油') || newItem.text.includes('油') || newItem.text.includes('こしょう') || newItem.text.includes('コンソメ') || newItem.text.includes('鶏がらスープ'));
+                
+                if (isSeasoning) {
+                    const cleanName = getCleanSeasoningName(newItem.text);
+                    const key = cleanName.toLowerCase();
+                    if (!seasoningMap[key]) {
+                        seasoningMap[key] = { name: cleanName, category: cat, checked: false };
+                    }
+                } else {
+                    const parsed = parseRegularIngredient(newItem.text);
+                    const key = parsed.name.toLowerCase();
+                    if (!map[key]) {
+                        map[key] = {
+                            name: parsed.name,
+                            category: cat,
+                            units: {},
+                            checked: false
+                        };
+                    }
+                    const u = parsed.unit || '';
+                    if (!map[key].units[u]) map[key].units[u] = 0;
+                    map[key].units[u] += parsed.value;
+                }
+            });
+            
+            const updated = [];
+            
+            Object.values(map).forEach(obj => {
+                const parts = [];
+                Object.entries(obj.units).forEach(([unit, val]) => {
+                    if (val > 0 || unit === '少々' || unit === '適量') {
+                        if (val > 0) {
+                            let vStr = val.toFixed(2);
+                            vStr = parseFloat(vStr).toString();
+                            parts.push(unit ? `${vStr}${unit}` : vStr);
+                        } else if (unit) {
+                            parts.push(unit);
+                        }
+                    }
+                });
+                const text = parts.length > 0 ? `${obj.name} ${parts.join('')}` : obj.name;
+                updated.push({
+                    id: 'sh_' + Math.random().toString(36).substr(2, 9),
+                    text: text,
+                    category: obj.category,
+                    checked: obj.checked
+                });
+            });
+            
+            Object.values(seasoningMap).forEach(obj => {
+                updated.push({
+                    id: 'sh_' + Math.random().toString(36).substr(2, 9),
+                    text: obj.name,
+                    category: obj.category,
+                    checked: obj.checked
+                });
+            });
+            
+            shoppingListItems = updated;
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g,
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' } [tag] || tag)
+            );
+        }
+        
+        window.openAddShoppingModal = function() {
+            const input = document.getElementById('customShoppingInput');
+            if (input) input.value = '';
+            const modal = document.getElementById('addShoppingModal');
+            if (modal) modal.classList.remove('hidden');
+        };
+        
+        // 各ジャンルの「＋」ボタンから呼び出される関数
+        window.openAddShoppingModalForCategory = function(category) {
+            const input = document.getElementById('customShoppingInput');
+            if (input) input.value = '';
+            const catSelect = document.getElementById('customShoppingCategory');
+            if (catSelect) {
+                catSelect.value = category;
+            }
+            const modal = document.getElementById('addShoppingModal');
+            if (modal) modal.classList.remove('hidden');
+        };
+        
+        window.closeAddShoppingModal = function() {
+            const modal = document.getElementById('addShoppingModal');
+            if (modal) modal.classList.add('hidden');
+        };
+        
+        window.saveCustomShoppingItem = function(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            const input = document.getElementById('customShoppingInput');
+            const catSelect = document.getElementById('customShoppingCategory');
+            if (!input) return;
+            
+            const text = input.value.trim();
+            const category = catSelect ? catSelect.value : 'その他';
+            if (!text) return;
+            
+            addIngredientsWithAggregation([{ text, category }]);
+            persistAndRender();
+            closeAddShoppingModal();
+            if (typeof showToast === 'function') showToast("買い物リストに追加しました！");
+        };
+        
+        window.openClearOptionsModal = function() {
+            const modal = document.getElementById('clearOptionsModal');
+            if (modal) modal.classList.remove('hidden');
+        };
+        
+        window.closeClearOptionsModal = function() {
+            const modal = document.getElementById('clearOptionsModal');
+            if (modal) modal.classList.add('hidden');
+        };
+        
+        window.clearCheckedShoppingItems = function() {
+            shoppingListItems = shoppingListItems.filter(i => !i.checked);
+            persistAndRender();
+            closeClearOptionsModal();
+            if (typeof showToast === 'function') showToast("チェック済みの項目を削除しました");
+        };
+        
+        window.clearAllShoppingListDirect = function() {
+            shoppingListItems = [];
+            persistAndRender();
+            closeClearOptionsModal();
+            if (typeof showToast === 'function') showToast("買い物リストをすべてクリアしました");
+        };
+        
+        window.openAddWeeklyShoppingModal = function() {
+            const container = document.getElementById('weeklyShoppingPortionButtons');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let p = 1; p <= 6; p++) {
+                container.innerHTML += `
+    <button type="button" onclick="selectWeeklyPortion(${p})" id="weeklyPortionBtn-${p}" class="py-2.5 rounded-2xl text-xs font-bold transition-all border ${p === 2 ? 'bg-orange-500 text-white border-orange-500 shadow-md' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'} cursor-pointer">${p}人前</button>
+`;
+            }
+            window._selectedWeeklyPortion = 2;
+            const modal = document.getElementById('addWeeklyShoppingModal');
+            if (modal) modal.classList.remove('hidden');
+        };
+        
+        window.closeAddWeeklyShoppingModal = function() {
+            const modal = document.getElementById('addWeeklyShoppingModal');
+            if (modal) modal.classList.add('hidden');
+        };
+        
+        window.selectWeeklyPortion = function(p) {
+            window._selectedWeeklyPortion = p;
+            for (let i = 1; i <= 6; i++) {
+                const btn = document.getElementById(`weeklyPortionBtn-${i}`);
+                if (btn) {
+                    if (i === p) {
+                        btn.className = "py-2.5 rounded-2xl text-xs font-bold transition-all border bg-orange-500 text-white border-orange-500 shadow-md cursor-pointer";
+                    } else {
+                        btn.className = "py-2.5 rounded-2xl text-xs font-bold transition-all border bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 cursor-pointer";
+                    }
+                }
+            }
+        };
+        
+        window.confirmAddWeeklyScheduleToShopping = function() {
+            const portion = window._selectedWeeklyPortion || 2;
+            const recipesToAdd = [];
+            
+            if (typeof weeklySchedule !== 'undefined') {
+                Object.values(weeklySchedule).forEach(assigned => {
+                    if (!assigned) return;
+                    if (assigned.type === 'set') {
+                        const s = typeof menuSets !== 'undefined' ? menuSets.find(item => item.id === assigned.id) : null;
+                        if (s) {
+                            if (s.mainId) recipesToAdd.push({ id: s.mainId, portion });
+                            if (s.subId) recipesToAdd.push({ id: s.subId, portion });
+                            if (s.soupId) recipesToAdd.push({ id: s.soupId, portion });
+                        }
+                    } else if (assigned.type === 'combination' || assigned.type === 'recipe') {
+                        const mainId = assigned.mainId || (assigned.type === 'recipe' ? assigned.id : '');
+                        if (mainId) recipesToAdd.push({ id: mainId, portion });
+                        if (assigned.subId) recipesToAdd.push({ id: assigned.subId, portion });
+                        if (assigned.soupId) recipesToAdd.push({ id: assigned.soupId, portion });
+                    }
+                });
+            }
+            
+            const newItems = [];
+            recipesToAdd.forEach(item => {
+                const rec = window.recipes && Array.isArray(window.recipes) ? window.recipes.find(r => r.id === item.id) : null;
+                if (rec && rec.ingredients) {
+                    const baseServings = rec.baseServings || 2;
+                    rec.ingredients.forEach(ing => {
+                        const scaledIng = scaleIngredientAmount(ing, baseServings, item.portion);
+                        const category = typeof classifyIngredient === 'function' ? classifyIngredient(scaledIng) : 'その他';
+                        newItems.push({ text: scaledIng, category });
+                    });
+                }
+            });
+            
+            addIngredientsWithAggregation(newItems);
+            
+            persistAndRender();
+            closeAddWeeklyShoppingModal();
+            if (typeof showToast === 'function') showToast("今週の材料を買い物リストに合算して追加しました！");
+            if (typeof switchTab === 'function') switchTab('shopping');
+        };
+        
+        function scaleIngredientAmount(ingredientText, baseServings, targetServings) {
+            if (!ingredientText || !baseServings || baseServings === targetServings) {
+                return ingredientText;
+            }
+            const ratio = targetServings / baseServings;
+            return ingredientText.replace(/(\d+分の\d+|\d+\/\d+|\d+(?:\.\d+)?)/g, (match) => {
+                let val = parseNumericValue(match);
+                if (isNaN(val)) return match;
+                const scaled = val * ratio;
+                let formatted = scaled.toFixed(2);
+                formatted = parseFloat(formatted).toString();
+                return formatted;
+            });
+        }
+        
+        let currentDetailSetId = null;
+        let currentDetailPortion = 2;
+        let currentDetailType = 'set';
+        
+        window.viewSetDetail = function(setId) {
+            currentDetailSetId = setId;
+            currentDetailPortion = 2;
+            currentDetailType = 'set';
+            const s = menuSets.find(item => item.id === setId);
+            if (!s) return;
+            
+            document.getElementById('detailModalTitle').innerHTML = `<i class="fa-solid fa-layer-group text-amber-500 mr-2"></i>${s.name}`;
+            renderPortionButtonsForDetail();
+            renderSetDetailBodyForSet(s, currentDetailPortion);
+            
+            const btn = document.getElementById('addThisMealToShoppingBtn');
+            btn.onclick = () => addSpecificSetToShopping(s.id, currentDetailPortion);
+            document.getElementById('addThisMealToShoppingText').innerText = `この定食（${currentDetailPortion}人前）を買い物リストに追加する`;
+            
+            document.getElementById('setDetailModal').classList.remove('hidden');
+        };
+        
+        window.viewCombinationDetail = function(dayKey) {
+            currentDetailSetId = dayKey;
+            currentDetailPortion = 2;
+            currentDetailType = 'combination';
+            const assigned = weeklySchedule[dayKey];
+            if (!assigned) return;
+            
+            const dayObj = DAYS.find(d => d.key === dayKey);
+            document.getElementById('detailModalTitle').innerHTML = `<i class="fa-solid fa-utensils text-orange-500 mr-2"></i>${dayObj.label}の献立詳細`;
+            renderPortionButtonsForDetail();
+            renderSetDetailBodyForCombination(assigned, currentDetailPortion);
+            
+            const btn = document.getElementById('addThisMealToShoppingBtn');
+            btn.onclick = () => addSpecificCombinationToShopping(dayKey, currentDetailPortion);
+            document.getElementById('addThisMealToShoppingText').innerText = `この組み合わせ（${currentDetailPortion}人前）を買い物リストに追加する`;
+            
+            document.getElementById('setDetailModal').classList.remove('hidden');
+        };
+        
+        window.closeSetDetail = function() {
+            document.getElementById('setDetailModal').classList.add('hidden');
+        };
+        
+        function renderPortionButtonsForDetail() {
+            const container = document.getElementById('portionButtonsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let p = 1; p <= 6; p++) {
+                container.innerHTML += `
+    <button type="button" onclick="changeDetailPortion(${p})" id="detailPortionBtn-${p}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${p === currentDetailPortion ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:bg-amber-100'} cursor-pointer">${p}人前</button>
+`;
+            }
+        }
+        
+        window.changeDetailPortion = function(p) {
+            currentDetailPortion = p;
+            renderPortionButtonsForDetail();
+            
+            if (currentDetailType === 'set') {
+                const s = menuSets.find(item => item.id === currentDetailSetId);
+                if (s) {
+                    renderSetDetailBodyForSet(s, p);
+                    const btn = document.getElementById('addThisMealToShoppingBtn');
+                    btn.onclick = () => addSpecificSetToShopping(s.id, p);
+                    document.getElementById('addThisMealToShoppingText').innerText = `この定食（${p}人前）を買い物リストに追加する`;
+                }
+            } else {
+                const assigned = weeklySchedule[currentDetailSetId];
+                if (assigned) {
+                    renderSetDetailBodyForCombination(assigned, p);
+                    const btn = document.getElementById('addThisMealToShoppingBtn');
+                    btn.onclick = () => addSpecificCombinationToShopping(currentDetailSetId, p);
+                    document.getElementById('addThisMealToShoppingText').innerText = `この組み合わせ（${p}人前）を買い物リストに追加する`;
+                }
+            }
+        };
+        
+        function renderSetDetailBodyForSet(setObj, portion) {
+            const body = document.getElementById('setDetailBody');
+            if (!body) return;
+            
+            const recipes = [
+                window.recipes.find(r => r.id === setObj.mainId),
+                window.recipes.find(r => r.id === setObj.subId),
+                window.recipes.find(r => r.id === setObj.soupId)
+            ].filter(Boolean);
+            
+            let html = '';
+            recipes.forEach(r => {
+                const baseServings = r.baseServings || 2;
+                html += `
+    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 mb-3">
+        <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800">${r.category}</span>
+            <span class="text-xs text-slate-400"><i class="fa-solid fa-clock mr-1"></i>${r.time || '15分'} (基準: ${baseServings}人前)</span>
+        </div>
+        <h4 class="font-bold text-slate-800 text-sm">${r.title}</h4>
+        <div class="text-xs text-slate-600 space-y-1">
+            <p class="font-bold text-slate-700">材料 (${portion}人前):</p>
+            <ul class="list-disc list-inside pl-1 space-y-0.5">
+                ${(r.ingredients || []).map(i => `<li>${scaleIngredientAmount(i, baseServings, portion)}</li>`).join('')}
+            </ul>
+        </div>
+        ${r.instructions ? `<div class="text-xs text-slate-600 pt-1 border-t border-slate-200/60"><p class="font-bold text-slate-700 mb-0.5">作り方:</p><p class="whitespace-pre-line">${r.instructions}</p></div>` : ''}
+    </div>
+`;
+            });
+            body.innerHTML = html;
+        }
+        
+        function renderSetDetailBodyForCombination(assigned, portion) {
+            const body = document.getElementById('setDetailBody');
+            if (!body) return;
+            
+            const mainId = assigned.mainId || (assigned.type === 'recipe' ? assigned.id : '');
+            const recipes = [
+                window.recipes.find(r => r.id === mainId),
+                window.recipes.find(r => r.id === assigned.subId),
+                window.recipes.find(r => r.id === assigned.soupId)
+            ].filter(Boolean);
+            
+            let html = '';
+            recipes.forEach(r => {
+                const baseServings = r.baseServings || 2;
+                html += `
+    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 mb-3">
+        <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800">${r.category}</span>
+            <span class="text-xs text-slate-400"><i class="fa-solid fa-clock mr-1"></i>${r.time || '15分'} (基準: ${baseServings}人前)</span>
+        </div>
+        <h4 class="font-bold text-slate-800 text-sm">${r.title}</h4>
+        <div class="text-xs text-slate-600 space-y-1">
+            <p class="font-bold text-slate-700">材料 (${portion}人前):</p>
+            <ul class="list-disc list-inside pl-1 space-y-0.5">
+                ${(r.ingredients || []).map(i => `<li>${scaleIngredientAmount(i, baseServings, portion)}</li>`).join('')}
+            </ul>
+        </div>
+        ${r.instructions ? `<div class="text-xs text-slate-600 pt-1 border-t border-slate-200/60"><p class="font-bold text-slate-700 mb-0.5">作り方:</p><p class="whitespace-pre-line">${r.instructions}</p></div>` : ''}
+    </div>
+`;
+            });
+            body.innerHTML = html;
+        }
+        
+        window.addSpecificSetToShopping = function(setId, portion) {
+            const s = menuSets.find(item => item.id === setId);
+            if (!s) return;
+            
+            const recipes = [
+                window.recipes.find(r => r.id === s.mainId),
+                window.recipes.find(r => r.id === s.subId),
+                window.recipes.find(r => r.id === s.soupId)
+            ].filter(Boolean);
+            
+            const newItems = [];
+            recipes.forEach(r => {
+                if (r.ingredients) {
+                    const baseServings = r.baseServings || 2;
+                    r.ingredients.forEach(ing => {
+                        const scaledIng = scaleIngredientAmount(ing, baseServings, portion);
+                        newItems.push({
+                            text: scaledIng,
+                            category: typeof classifyIngredient === 'function' ? classifyIngredient(ing) : 'その他'
+                        });
+                    });
+                }
+            });
+            
+            addIngredientsWithAggregation(newItems);
+            persistAndRender();
+            closeSetDetail();
+            showToast(`定食セットの材料（${portion}人前）を合算して追加しました！`);
+            switchTab('shopping');
+        };
+        
+        window.addSpecificCombinationToShopping = function(dayKey, portion) {
+            const assigned = weeklySchedule[dayKey];
+            if (!assigned) return;
+            
+            const mainId = assigned.mainId || (assigned.type === 'recipe' ? assigned.id : '');
+            const recipes = [
+                window.recipes.find(r => r.id === mainId),
+                window.recipes.find(r => r.id === assigned.subId),
+                window.recipes.find(r => r.id === assigned.soupId)
+            ].filter(Boolean);
+            
+            const newItems = [];
+            recipes.forEach(r => {
+                if (r.ingredients) {
+                    const baseServings = r.baseServings || 2;
+                    r.ingredients.forEach(ing => {
+                        const scaledIng = scaleIngredientAmount(ing, baseServings, portion);
+                        newItems.push({
+                            text: scaledIng,
+                            category: typeof classifyIngredient === 'function' ? classifyIngredient(ing) : 'その他'
+                        });
+                    });
+                }
+            });
+            
+            addIngredientsWithAggregation(newItems);
+            persistAndRender();
+            closeSetDetail();
+            showToast(`カスタム献立の材料（${portion}人前）を合算して追加しました！`);
+            switchTab('shopping');
+        };
+        // アプリ起動時の初期化実行
+        initFirebase();
+    </script>
+</body>
+
+</html>
