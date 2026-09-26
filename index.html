@@ -344,7 +344,7 @@
                 <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-utensils text-orange-500 mr-2"></i>レシピの追加</h3>
                 <button onclick="closeAddRecipeModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
             </div>
-          
+            
             ​<!-- レシピ情報入力フォーム -->
             <form id="recipeForm" onsubmit="saveRecipe(event)" class="space-y-4">
                 <input type="hidden" id="recipeEditId">
@@ -583,7 +583,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, collection, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'kondate-ai-concierge-shared';
         const firebaseConfig = {
@@ -948,7 +948,7 @@
         };
         
         
-
+        
         //,  ==========================================
         // Firebase初期化およびリアルタイム同期機能
         // ==========================================
@@ -993,9 +993,11 @@
             }
         }
         
+        /* STREAMING_CHUNK:Fixing Firestore document reference and sync logic... */
         async function setupRealtimeSync() {
             if (!db) return;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_menu_store');
+            // 修正: 末尾にドキュメントID ('main') を追加して偶数（ドキュメント）にする
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_menu_store', 'main');
             
             try {
                 const snap = await getDoc(docRef);
@@ -1042,7 +1044,8 @@
             }
             
             if (isCloudReady && db) {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_menu_store');
+                // 修正: こちらも同様に末尾に 'main' を追加
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_menu_store', 'main');
                 setDoc(docRef, {
                     recipes: window.recipes,
                     menuSets,
