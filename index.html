@@ -587,7 +587,7 @@
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'kondate-ai-concierge-shared';
         const firebaseConfig = {
-            apiKey: "AIzaSyB26b7xHNj49xvqwfqbCwnG6BqSlCl7wWs",
+            apiKey: "AIzaSyCYaYssM0SNPOL0Gy8OY6Ezkqdt8U4Op40",
             authDomain: "kondate-e4e45.firebaseapp.com",
             projectId: "kondate-e4e45",
             storageBucket: "kondate-e4e45.firebasestorage.app",
@@ -952,6 +952,8 @@
         //,  ==========================================
         // Firebase初期化およびリアルタイム同期機能
         // ==========================================
+        let isRemoteUpdate = false;
+        
         async function initFirebase() {
             renderAll();
             renderQuickChips();
@@ -993,10 +995,8 @@
             }
         }
         
-        /* STREAMING_CHUNK:Fixing Firestore document reference and sync logic... */
         async function setupRealtimeSync() {
             if (!db) return;
-            // 修正: 末尾にドキュメントID ('main') を追加して偶数（ドキュメント）にする
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_menu_store', 'main');
             
             try {
@@ -1017,11 +1017,32 @@
             onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    
+                    // クラウドからの更新であることを示して無限ループを防止
+                    isRemoteUpdate = true;
+                    
                     if (data.recipes) window.recipes = data.recipes;
                     if (data.menuSets) menuSets = data.menuSets;
                     if (data.weeklySchedule) weeklySchedule = data.weeklySchedule;
                     if (data.shoppingListItems) shoppingListItems = data.shoppingListItems;
-                    persistAndRender();
+                    
+                    try {
+                        const dataToSave = {
+                            recipes: window.recipes,
+                            menuSets,
+                            weeklySchedule,
+                            shoppingListItems,
+                            updatedAt: data.updatedAt || Date.now()
+                        };
+                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+                    } catch (e) {
+                        console.error("LocalStorage save error:", e);
+                    }
+                    
+                    renderAll();
+                    
+                    // フラグを元に戻す
+                    isRemoteUpdate = false;
                 }
             }, (error) => {
                 console.error("Snapshot error:", error);
@@ -1043,8 +1064,8 @@
                 console.error("LocalStorage save error:", e);
             }
             
-            if (isCloudReady && db) {
-                // 修正: こちらも同様に末尾に 'main' を追加
+            // クラウドからの更新中（isRemoteUpdateがtrue）ではない場合のみクラウドへ書き込む
+            if (isCloudReady && db && !isRemoteUpdate) {
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'family_menu_store', 'main');
                 setDoc(docRef, {
                     recipes: window.recipes,
