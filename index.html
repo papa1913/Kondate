@@ -512,9 +512,13 @@
                     <select id="customShoppingCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400">
                         <option value="野菜・果物">野菜・果物</option>
                         <option value="肉・魚介">肉・魚介</option>
-                        <option value="乳製品・卵">乳製品・卵</option>
                         <option value="調味料・乾物">調味料・乾物</option>
                         <option value="その他">その他</option>
+                        
+                        <option value="日用品">日用品</option>
+                        
+                        <option value="ダイソー・セリア">ダイソー・セリア</option>
+                        
                     </select>
                 </div>
                 <div class="pt-2 flex space-x-2">
@@ -704,7 +708,7 @@
     let weeklySchedule = localData.weeklySchedule;
     let shoppingListItems = localData.shoppingListItems;
     
-    const SHOPPING_CATEGORIES = ['野菜・果物', '肉・魚介', '乳製品・卵', '調味料・乾物', 'その他'];
+    const SHOPPING_CATEGORIES = ['野菜・果物', '肉・魚介', '調味料・乾物', 'その他', '日用品', 'ダイソー・セリア'];
     
     // ==========================================
     // 通知トーストおよび確認ダイアログの定義
@@ -1133,13 +1137,11 @@
         if (t.includes('キャベツ') || t.includes('きゅうり') || t.includes('トマト') || t.includes('人参') || t.includes('玉ねぎ') || t.includes('じゃがいも') || t.includes('大根') || t.includes('ネギ') || t.includes('レタス') || t.includes('ピーマン') || t.includes('なす') || t.includes('ほうれん草') || t.includes('もやし') || t.includes('生姜') || t.includes('ニンニク') || t.includes('果物') || t.includes('レモン') || t.includes('アボカド') || t.includes('ブロッコリー') || t.includes('大根おろし')) {
             return '野菜・果物';
         }
-        if (t.includes('牛乳') || t.includes('卵') || t.includes('チーズ') || t.includes('バター') || t.includes('ヨーグルト') || t.includes('生クリーム')) {
-            return '乳製品・卵';
-        }
         if (t.includes('味噌') || t.includes('醤油') || t.includes('砂糖') || t.includes('塩') || t.includes('酢') || t.includes('みりん') || t.includes('酒') || t.includes('油') || t.includes('ごま油') || t.includes('マヨネーズ') || t.includes('ケチャップ') || t.includes('だし') || t.includes('コンソメ') || t.includes('ワカメ') || t.includes('片栗粉') || t.includes('小麦粉') || t.includes('パン粉') || t.includes('カレー') || t.includes('胡椒') || t.includes('ポン酢')) {
             return '調味料・乾物';
         }
         return 'その他';
+        
     }
     // ==========================================
     // ウィークリーカレンダー描画機能
@@ -1469,12 +1471,13 @@
     };
     
     window.deleteRecipe = function(id) {
-        showConfirmModal("このレシピを削除してもよろしいですか？", () => {
+        if (confirm("このレシピを削除してもよろしいですか？")) {
             window.recipes = window.recipes.filter(r => r.id !== id);
             persistAndRender();
             showToast("レシピを削除しました");
-        });
+        }
     };
+    
     
     function renderSets() {
         const grid = document.getElementById('sets-grid');
@@ -1564,12 +1567,13 @@
     };
     
     window.deleteMenuSet = function(id) {
-        showConfirmModal("この献立セットを削除してもよろしいですか？", () => {
+        if (confirm("この献立セットを削除してもよろしいですか？")) {
             menuSets = menuSets.filter(s => s.id !== id);
             persistAndRender();
             showToast("セットを削除しました");
-        });
+        }
     };
+    
     
     let draggedShoppingItemId = null;
     let longPressTimer = null;
@@ -1577,7 +1581,7 @@
     let longPressSourceEl = null;
     
     if (typeof SHOPPING_CATEGORIES === 'undefined') {
-        window.SHOPPING_CATEGORIES = ['野菜・果物', '肉・魚介', '乳製品・卵', '調味料・その他'];
+        window.SHOPPING_CATEGORIES = ['野菜・果物', '肉・魚介', '調味料・その他', '日用品', 'ダイソー・セリア'];
     }
     if (typeof shoppingListItems === 'undefined') {
         window.shoppingListItems = [];
@@ -1602,7 +1606,8 @@
         let hasAny = false;
         SHOPPING_CATEGORIES.forEach(cat => {
             const items = groups[cat] || [];
-            hasAny = true; // 常に各ジャンルを表示し、ジャンルごとの＋ボタンから追加できるようにする
+            hasAny = true;
+            //常に各ジャンルを表示し、ジャンルごとの＋ボタンから追加できるようにする
             
             const section = document.createElement('div');
             section.className = "bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2";
@@ -1862,6 +1867,18 @@
                         checked: false
                     };
                 }
+                if (!map[key]) {
+                    map[key] = {
+                        name: parsed.name,
+                        category: cat,
+                        units: {},
+                        checked: false
+                    };
+                } else {
+                    map[key].category = cat; // ← ここを追加
+                }
+                
+                
                 const u = parsed.unit || '';
                 if (!map[key].units[u]) map[key].units[u] = 0;
                 map[key].units[u] += parsed.value;
