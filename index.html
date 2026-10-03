@@ -1603,11 +1603,8 @@
             });
         }
         
-        let hasAny = false;
         SHOPPING_CATEGORIES.forEach(cat => {
             const items = groups[cat] || [];
-            hasAny = true;
-            //常に各ジャンルを表示し、ジャンルごとの＋ボタンから追加できるようにする
             
             const section = document.createElement('div');
             section.className = "bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2";
@@ -1617,45 +1614,117 @@
                 itemsHtml = `<p class="text-xs text-slate-300 italic py-1 px-2">アイテムはありません</p>`;
             } else {
                 items.forEach(item => {
+                    // 【重要】<label>タグを一切使わず、divとonclickで完全に分離する
                     itemsHtml += `
-        <div draggable="true" 
-             data-id="${item.id}"
-             ondragstart="window.handleShoppingDragStart(event, '${item.id}')" 
-             ondragover="window.handleShoppingDragOver(event)" 
-             ondrop="window.handleShoppingDrop(event, '${item.id}')"
-             ontouchstart="window.handleShoppingTouchStart(event, '${item.id}')"
-             ontouchmove="window.handleShoppingTouchMove(event)"
-             ontouchend="window.handleShoppingTouchEnd(event, '${item.id}')"
-             class="flex items-center justify-between py-2 px-2 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-200 select-none">
-            <label class="flex items-center space-x-3 cursor-pointer flex-1 select-none">
-                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleShoppingItem('${item.id}')" class="w-4 h-4 text-orange-500 rounded border-slate-300 focus:ring-orange-400">
-                <span class="text-xs ${item.checked ? 'line-through text-slate-400' : 'text-slate-700 font-bold'}">${escapeHtml(item.text)}</span>
-            </label>
-            <div class="flex items-center space-x-1">
-                <span class="text-[10px] text-slate-300 hidden sm:inline" title="ドラッグまたは長押しで並び替え"><i class="fa-solid fa-grip-vertical"></i></span>
-                <button onclick="deleteShoppingItem('${item.id}')" class="text-slate-300 hover:text-rose-500 transition-colors text-xs px-2 py-1 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-        </div>
-    `;
+                    <div draggable="true" 
+                         data-id="${item.id}"
+                         ondragstart="window.handleShoppingDragStart(event, '${item.id}')" 
+                         ondragover="window.handleShoppingDragOver(event)" 
+                         ondrop="window.handleShoppingDrop(event, '${item.id}')"
+                         ontouchstart="window.handleShoppingTouchStart(event, '${item.id}')"
+                         ontouchmove="window.handleShoppingTouchMove(event)"
+                         ontouchend="window.handleShoppingTouchEnd(event, '${item.id}')"
+                         class="flex items-center justify-between py-2 px-2 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-200 select-none">
+                        
+                        <!-- チェックボックスとテキストを独立させる領域（<label>なし） -->
+                        <div class="flex items-center space-x-3 flex-1 select-none cursor-pointer" onclick="editShoppingItemText(event, '${item.id}')">
+                            <input type="checkbox" ${item.checked ? 'checked' : ''} onclick="event.stopPropagation(); toggleShoppingItem('${item.id}')" class="w-4 h-4 text-orange-500 rounded border-slate-300 focus:ring-orange-400 cursor-pointer">
+                            <span class="text-xs ${item.checked ? 'line-through text-slate-400' : 'text-slate-700 font-bold'} hover:underline" title="タップして名前や数量を編集">${escapeHtml(item.text)}</span>
+                        </div>
+
+                        <div class="flex items-center space-x-1 ml-2">
+                            <span class="text-[10px] text-slate-300 hidden sm:inline" title="ドラッグまたは長押しで並び替え"><i class="fa-solid fa-grip-vertical"></i></span>
+                            <button onclick="event.stopPropagation(); deleteShoppingItem('${item.id}')" class="text-slate-300 hover:text-rose-500 transition-colors text-xs px-2 py-1 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                `;
                 });
             }
             
             section.innerHTML = `
-    <div class="flex items-center justify-between border-b border-orange-100 pb-2 mb-2">
-        <h3 class="font-bold text-xs text-orange-800 flex items-center">
-            <i class="fa-solid fa-tag text-orange-500 mr-1.5"></i>${cat} (${items.length})
-        </h3>
-        <button onclick="openAddShoppingModalForCategory('${cat}')" class="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-500 hover:text-white text-orange-600 flex items-center justify-center transition-all text-xs cursor-pointer shadow-sm" title="${cat}に食材を追加">
-            <i class="fa-solid fa-plus"></i>
-        </button>
-    </div>
-    <div class="space-y-1">${itemsHtml}</div>
-`;
+            <div class="flex items-center justify-between border-b border-orange-100 pb-2 mb-2">
+                <h3 class="font-bold text-xs text-orange-800 flex items-center">
+                    <i class="fa-solid fa-tag text-orange-500 mr-1.5"></i>${cat} (${items.length})
+                </h3>
+                <button onclick="openAddShoppingModalForCategory('${cat}')" class="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-500 hover:text-white text-orange-600 flex items-center justify-center transition-all text-xs cursor-pointer shadow-sm" title="${cat}に食材を追加">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            <div class="space-y-1">${itemsHtml}</div>
+        `;
             container.appendChild(section);
         });
-        
-        // 全グループが空かどうかチェックする場合は適宜判定
     };
+    window.renderShoppingList = function() {
+        const container = document.getElementById('shopping-list-container');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const groups = {};
+        SHOPPING_CATEGORIES.forEach(cat => groups[cat] = []);
+        
+        if (Array.isArray(shoppingListItems)) {
+            shoppingListItems.forEach(item => {
+                const cat = item.category || 'その他';
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push(item);
+            });
+        }
+        
+        SHOPPING_CATEGORIES.forEach(cat => {
+            const items = groups[cat] || [];
+            
+            const section = document.createElement('div');
+            section.className = "bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-2";
+            
+            let itemsHtml = '';
+            if (items.length === 0) {
+                itemsHtml = `<p class="text-xs text-slate-300 italic py-1 px-2">アイテムはありません</p>`;
+            } else {
+                items.forEach(item => {
+                    // 【重要】<label>タグを一切使わず、divとonclickで完全に分離する
+                    itemsHtml += `
+                    <div draggable="true" 
+                         data-id="${item.id}"
+                         ondragstart="window.handleShoppingDragStart(event, '${item.id}')" 
+                         ondragover="window.handleShoppingDragOver(event)" 
+                         ondrop="window.handleShoppingDrop(event, '${item.id}')"
+                         ontouchstart="window.handleShoppingTouchStart(event, '${item.id}')"
+                         ontouchmove="window.handleShoppingTouchMove(event)"
+                         ontouchend="window.handleShoppingTouchEnd(event, '${item.id}')"
+                         class="flex items-center justify-between py-2 px-2 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-200 select-none">
+                        
+                        <!-- チェックボックスとテキストを独立させる領域（<label>なし） -->
+                        <div class="flex items-center space-x-3 flex-1 select-none cursor-pointer" onclick="editShoppingItemText(event, '${item.id}')">
+                            <input type="checkbox" ${item.checked ? 'checked' : ''} onclick="event.stopPropagation(); toggleShoppingItem('${item.id}')" class="w-4 h-4 text-orange-500 rounded border-slate-300 focus:ring-orange-400 cursor-pointer">
+                            <span class="text-xs ${item.checked ? 'line-through text-slate-400' : 'text-slate-700 font-bold'} hover:underline" title="タップして名前や数量を編集">${escapeHtml(item.text)}</span>
+                        </div>
+
+                        <div class="flex items-center space-x-1 ml-2">
+                            <span class="text-[10px] text-slate-300 hidden sm:inline" title="ドラッグまたは長押しで並び替え"><i class="fa-solid fa-grip-vertical"></i></span>
+                            <button onclick="event.stopPropagation(); deleteShoppingItem('${item.id}')" class="text-slate-300 hover:text-rose-500 transition-colors text-xs px-2 py-1 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                `;
+                });
+            }
+            
+            section.innerHTML = `
+            <div class="flex items-center justify-between border-b border-orange-100 pb-2 mb-2">
+                <h3 class="font-bold text-xs text-orange-800 flex items-center">
+                    <i class="fa-solid fa-tag text-orange-500 mr-1.5"></i>${cat} (${items.length})
+                </h3>
+                <button onclick="openAddShoppingModalForCategory('${cat}')" class="w-6 h-6 rounded-lg bg-orange-100 hover:bg-orange-500 hover:text-white text-orange-600 flex items-center justify-center transition-all text-xs cursor-pointer shadow-sm" title="${cat}に食材を追加">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            <div class="space-y-1">${itemsHtml}</div>
+        `;
+            container.appendChild(section);
+        });
+    };
+    
+    
     
     window.handleShoppingDragStart = function(e, id) {
         if (isLongPressActive) return;
@@ -1792,9 +1861,11 @@
     function parseRegularIngredient(text) {
         if (!text) return { name: '', value: 0, unit: '' };
         let cleaned = text.trim();
-        cleaned = cleaned.replace(/\s*[\（\(]\d+[\）\)]$/, '').trim();
         
-        const match = cleaned.match(/^([\p{L}\p{N}\sー・]+?)\s*([\d０-９\.\/\s]+)?\s*(g|kg|ml|cc|ℓ|L|大さじ|小さじ|カップ|個|本|枚|パック|株|片|束|切れ|つまみ|少々|適量|玉|丁|袋|尾|房|切)?$/u);
+        // 【修正】括弧付きの数字だけでなく、末尾の「スペース＋数字（括弧あり・なし両方）」も正しく除去する
+        cleaned = cleaned.replace(/\s+[\（\(]?\d+[\）\)]?$/, '').trim();
+        
+        const match = cleaned.match(/^([\p{L}\p{N}\sー・\(\)（）]+?)\s*([\d０-９\.\/\s]+)?\s*(g|kg|ml|cc|ℓ|L|大さじ|小さじ|カップ|個|本|枚|パック|株|片|束|切れ|つまみ|少々|適量|玉|丁|袋|尾|房|切)?$/u);
         if (match) {
             const name = (match[1] || cleaned).trim();
             const numStr = (match[2] || '').trim();
@@ -1810,6 +1881,9 @@
         
         return { name: cleaned, value: 1, unit: '' };
     }
+    
+    
+    
     
     function addIngredientsWithAggregation(newItemsList) {
         if (!Array.isArray(shoppingListItems)) {
@@ -2180,7 +2254,12 @@
     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 mb-3">
         <div class="flex items-center justify-between">
             <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800">${r.category}</span>
-            <span class="text-xs text-slate-400"><i class="fa-solid fa-clock mr-1"></i>${r.time || '15分'} (基準: ${baseServings}人前)</span>
+          <span onclick="editShoppingItemText(event, '${item.id}')" 
+      class="text-xs ${item.checked ? 'line-through text-slate-400' : 'text-slate-700 font-bold'} hover:underline cursor-pointer" 
+      title="タップして名前や数量を編集">
+    ${escapeHtml(item.text)}
+</span>
+
         </div>
         <h4 class="font-bold text-slate-800 text-sm">${r.title}</h4>
         <div class="text-xs text-slate-600 space-y-1">
@@ -2292,6 +2371,74 @@
         showToast(`カスタム献立の材料（${portion}人前）を合算して追加しました！`);
         switchTab('shopping');
     };
+    // 買い物リストの項目名をタップして編集できるようにする関数
+    window.editShoppingItemText = function(e, id) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.editShoppingItemText = function(e, id) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation(); // チェックボックス等の他のイベントとの競合を防ぐ
+                }
+                
+                const item = shoppingListItems.find(i => i.id === id);
+                if (!item) return;
+                
+                // 1. プロンプト（入力ダイアログ）を表示して新しいテキスト入力を促す
+                const newText = prompt("食材名や数量を編集してください:", item.text);
+                
+                if (newText !== null) {
+                    const trimmed = newText.trim();
+                    if (trimmed !== "") {
+                        // 2. 入力されたテキストに更新し、保存＆再描画を行う
+                        item.text = trimmed;
+                        if (typeof persistAndRender === 'function') {
+                            persistAndRender();
+                        }
+                        if (typeof showToast === 'function') {
+                            showToast("買い物リストを更新しました！");
+                        }
+                    } else {
+                        // 3. もし空欄にされた場合は削除するか確認する親切設計
+                        if (confirm("空欄にするか、この項目を削除しますか？")) {
+                            if (typeof deleteShoppingItem === 'function') {
+                                deleteShoppingItem(id);
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // チェックボックスのクリック等との競合を防ぐ
+        }
+        
+        if (typeof shoppingListItems === 'undefined') return;
+        const item = shoppingListItems.find(i => i.id === id);
+        if (!item) return;
+        
+        const newText = prompt("食材名や数量を編集してください:", item.text);
+        if (newText !== null) {
+            const trimmed = newText.trim();
+            if (trimmed !== "") {
+                item.text = trimmed;
+                if (typeof persistAndRender === 'function') {
+                    persistAndRender();
+                }
+                if (typeof showToast === 'function') {
+                    showToast("買い物リストを更新しました！");
+                }
+            } else {
+                if (confirm("空欄にするか、この項目を削除しますか？")) {
+                    if (typeof deleteShoppingItem === 'function') {
+                        deleteShoppingItem(id);
+                    }
+                }
+            }
+        }
+    };
+    
+    
     // アプリ起動時の初期化実行
     initFirebase();
 </script>
